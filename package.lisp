@@ -1,5 +1,5 @@
 ;;;; package.lisp
 
 (defpackage #:sytes
-  (:use #:cl))
+  (:use #:cl #:split-sequence))
 

@@ -1,0 +1,75 @@
+{ ; -*- lisp -*-
+(eval-now
+
+ ((lambda (qq)
+    (&set! qq (lambda (x)
+                (if (cons? x)
+                    (if (eq 'unquote (car x))
+                        (cadr x)
+                        (if (eq 'quasiquote (car x))
+                            (qq (qq (cadr x)))
+                            (if (cons? (car x))
+                                (if (eq 'splice (caar x))
+                                    (list 'append (cadar x) (qq (cdr x)))
+                                    (list 'cons (qq (car x)) (qq (cdr x))))
+                                (list 'cons (qq (car x)) (qq (cdr x))))))
+                    (list 'quote x))))
+    (&defmacro! quasiquote (thing) (qq thing))) nil)
+
+ (&defmacro! defmacro (name args . body)
+             `(eval-now (&defmacro! ,name ,args ,@body)))
+
+ (defmacro defun (name args . body)
+   `(&defglobal! ,name (lambda ,args ,@body)))
+
+ (defmacro define (x . val)
+   (if (cons? x)
+       `(&def! ,(car x) (lambda ,(cdr x) ,@val))
+       `(&def! ,x ,(car val))))
+
+ (defmacro let (defs . body)
+   `((lambda ,(mapcar (lambda (x)
+                        (if (cons? x) (car x) x)) defs)
+       ,@body)
+     ,@(mapcar (lambda (x)
+                 (if (cons? x) (cadr x) nil)) defs)))
+
+ (&defglobal! %set!-setters (make-hash))
+
+ (defmacro set! (thing . val)
+   (if (symbol? thing)
+       `(&set! ,thing ,(car val))
+       ((get-hash %set!-setters (car thing)) (cdr thing) val)))
+
+ (defmacro define-setter (symbol args values . body)
+   (let ((a1 (gensym))
+         (a2 (gensym)))
+     `(set-hash %set!-setters
+                ',symbol
+                (lambda (,a1 ,a2)
+                  (apply (lambda ,args
+                           (apply (lambda ,values
+                                    ,@body)
+                                  ,a2))
+                         ,a1)))))
+
+ (define-setter car (cell) (value) `(rplaca ,cell ,value))
+ (define-setter cdr (cell) (value) `(rplacd ,cell ,value))
+ (define-setter %dot-lookup (main . path) (value)
+                `(%dot-set ,main ,value ,@path))
+
+ (defmacro inc! (x . delta)
+   (let ((val (gensym)))
+     `(let ((,val ,x))
+        (set! ,x ,(if delta
+                      `(+ ,(car delta) ,val)
+                      `(1+ ,val))))))
+
+ (defmacro dec! (x . delta)
+   (let ((val (gensym)))
+     `(let ((,val ,x))
+        (set! ,x ,(if delta
+                      `(- ,(car delta) ,val)
+                      `(1- ,val))))))
+
+ )}

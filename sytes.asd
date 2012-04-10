@@ -9,12 +9,17 @@
                #:anaphora
                #:iterate
                #:parse-number
-               #:cl-unicode)
+               #:cl-ppcre
+               #:cl-unicode
+               #:split-sequence
+               #:cl-fad)
   :components ((:file "package")
                (:file "sytes")
                (:module "template"
                         :serial t
                         :components ((:file "package")
+                                     (:file "context")
                                      (:file "parser")
-                                     (:file "compiler")))))
+                                     (:file "compiler")
+                                     (:file "storage")))))
 
