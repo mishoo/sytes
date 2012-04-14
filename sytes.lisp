@@ -3,6 +3,7 @@
 (in-package #:sytes)
 
 (export '(register-syte
+          unregister-syte
           syte-request-handler))
 
 ;;; "sytes" goes here. Hacks and glory await!
@@ -11,11 +12,25 @@
 
 (defclass syte ()
   ((names :accessor syte-names
-          :initarg :names
-          :initform (error "Syte names not specified"))
+          :initarg :names)
    (root :accessor syte-root
-         :initarg :root
-         :initform (error "Syte root not specified"))))
+         :initarg :root)
+   (context :accessor syte-context
+            :initarg :context))
+  (:default-initargs
+   :names (error "Syte names are missing")
+    :root (error "Syte root is missing")))
+
+(defmethod initialize-instance :after ((syte syte) &key names root context &allow-other-keys)
+  (unless context
+    (setf root
+          (setf (syte-root syte) (truename root)))
+    (setf context
+          (setf (syte-context syte) (tmpl:make-context :name (car names) :root root)))
+    (with-open-file (in (merge-pathnames "template/instance.syt"
+                                         (asdf:component-pathname
+                                          (asdf:find-system :sytes))))
+      (funcall (tmpl::compile (tmpl::parse in) :context context)))))
 
 (defun register-syte (syte)
   (loop for name in (syte-names syte)
@@ -29,8 +44,10 @@
   (:method ((syte (eql nil)) request)
     (format nil "No syte defined for host ~A" (hostname request)))
   (:method ((syte syte) request)
-    (declare (ignore request))
-    (format nil "No handler implemented for syte ~A" (car (syte-names syte)))))
+    (let* ((file (tbnl:script-name request))
+           (pos (position-if-not (lambda (x) (char= x #\/)) file)))
+      (setf file (subseq file pos))
+      (tmpl:exec-template file (syte-root syte) (syte-context syte)))))
 
 ;;; hunchentoot stuff
 

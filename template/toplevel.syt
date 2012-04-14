@@ -19,8 +19,11 @@
  (&defmacro! defmacro (name args . body)
              `(eval-now (&defmacro! ,name ,args ,@body)))
 
+ (defmacro defglobal (name value)
+   `(&defglobal! ,name ,value))
+
  (defmacro defun (name args . body)
-   `(&defglobal! ,name (lambda ,args ,@body)))
+   `(defglobal ,name (lambda ,args ,@body)))
 
  (defmacro define (x . val)
    (if (cons? x)
@@ -34,7 +37,7 @@
      ,@(mapcar (lambda (x)
                  (if (cons? x) (cadr x) nil)) defs)))
 
- (&defglobal! %set!-setters (make-hash))
+ (defglobal %set!-setters (make-hash))
 
  (defmacro set! (thing . val)
    (if (symbol? thing)

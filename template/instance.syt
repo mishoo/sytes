@@ -1,0 +1,17 @@
+{ ; -*- lisp -*-
+(eval-now
+
+ ;; this will be initialized to a fresh hash-table for each syte request
+ (defglobal *attributes* nil)
+
+ ;; autohandler/dhandler stuff
+ (defmacro @inherit (name)
+   (set! *autohandler* name) nil)
+
+ (defun @attr (name . value)
+   (if value
+       (set-hash *attributes* name (car value))
+       (get-hash *attributes* name)))
+
+ )
+}

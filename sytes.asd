@@ -12,14 +12,15 @@
                #:cl-ppcre
                #:cl-unicode
                #:split-sequence
-               #:cl-fad)
+               #:cl-fad
+               #:bordeaux-threads)
   :components ((:file "package")
-               (:file "sytes")
                (:module "template"
                         :serial t
                         :components ((:file "package")
                                      (:file "context")
                                      (:file "parser")
                                      (:file "compiler")
-                                     (:file "storage")))))
+                                     (:file "storage")))
+               (:file "sytes")))
 

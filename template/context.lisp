@@ -33,6 +33,7 @@
 (setf *current-context* *toplevel-context*)
 
 (defun my-symbol-in-context (name context &optional nointern)
+  (when (my-symbol-p name) (return-from my-symbol-in-context name))
   ;; actually intern them all in the toplevel context; this becomes
   ;; too messy.
   (setf context *toplevel-context*)

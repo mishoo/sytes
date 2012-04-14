@@ -110,12 +110,20 @@
      (comp-ref x))
     (t (error "Unsupported syntax: ~A" x))))
 
-(defun compile (exp)
-  (let ((ctx *current-context*)
-        (exp (comp-exp exp)))
-    (lambda ()
-      (let ((*current-context* ctx))
-        (funcall exp)))))
+(defun compile (exp &key (context *current-context*))
+  (let* ((ctx context)
+         (*current-context* context)
+         (exp (comp-exp exp)))
+    (lambda (&rest defs)
+      (let ((*current-context* ctx)
+            (env (context-env ctx)))
+        (unwind-protect
+             (progn
+               (loop for (name val) on defs by #'cddr do
+                    (defvar-context (my-symbol-in-context name ctx)
+                        val ctx))
+               (funcall exp))
+          (setf (context-env ctx) env))))))
 
 (defgeneric das-eq (x y)
   (:method ((x string) (y string))
@@ -125,8 +133,8 @@
   (:method (x y)
     (eq x y)))
 
-(defun def-primitive (name func)
-  (defglobal-context (tops name) func *toplevel-context*))
+(defun def-primitive (name func &optional (ctx *toplevel-context*))
+  (defglobal-context (tops name) func ctx))
 
 ;; basic library
 
@@ -282,7 +290,12 @@
           (apply (cdr (lookup-var (car exp))) (cdr exp))
           exp)))
 
-(with-open-file (in (merge-pathnames "template/init.syt"
+(def-primitive "capture-output"
+    (lambda (func &rest args)
+      (with-output-to-string (*standard-output*)
+        (apply func args))))
+
+(with-open-file (in (merge-pathnames "template/toplevel.syt"
                                      (asdf:component-pathname
                                       (asdf:find-system :sytes))))
   (funcall (compile (parse in))))
