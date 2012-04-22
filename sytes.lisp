@@ -9,6 +9,7 @@
 ;;; "sytes" goes here. Hacks and glory await!
 
 (defparameter *syte-names* (make-hash-table :test #'equal))
+(defparameter *current-syte* nil)
 
 (defclass syte ()
   ((names :accessor syte-names
@@ -47,7 +48,7 @@
     (let* ((file (tbnl:script-name request))
            (pos (position-if-not (lambda (x) (char= x #\/)) file)))
       (setf file (subseq file pos))
-      (tmpl:exec-template file (syte-root syte) (syte-context syte)))))
+      (tmpl:exec-template-request file (syte-root syte) (syte-context syte)))))
 
 ;;; hunchentoot stuff
 
@@ -82,5 +83,14 @@
   (setf (tbnl:content-type*) "text/html; charset=UTF-8")
   ;; (tbnl:start-session)
   (let* ((host (hostname request))
-         (syte (gethash host *syte-names*)))
+         (syte (gethash host *syte-names*))
+         (*current-syte* syte))
     (syte-request-handler syte request)))
+
+
+;;; some more primitives
+
+(tmpl:def-primitive "%import"
+    (lambda (name)
+      (tmpl:template-context
+       (tmpl:compile-file name (syte-context *current-syte*)))))

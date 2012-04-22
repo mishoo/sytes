@@ -13,5 +13,11 @@
        (set-hash *attributes* name (car value))
        (get-hash *attributes* name)))
 
+ (defmacro import (template . names)
+   `(let ((ctx (%import ,template)))
+      ,@(mapcar (lambda (name)
+                  `(&defglobal! ,name (%dot-lookup ctx ,name)))
+                names)))
+
  )
 }

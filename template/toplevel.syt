@@ -20,7 +20,7 @@
              `(eval-now (&defmacro! ,name ,args ,@body)))
 
  (defmacro defglobal (name value)
-   `(&defglobal! ,name ,value))
+   `(&defglobal! ',name ,value))
 
  (defmacro defun (name args . body)
    `(defglobal ,name (lambda ,args ,@body)))

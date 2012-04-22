@@ -6,7 +6,6 @@
 (defparameter +s-if+ (tops "if"))
 (defparameter +s-set+ (tops "&set!"))
 (defparameter +s-def+ (tops "&def!"))
-(defparameter +s-defglobal+ (tops "&defglobal!"))
 (defparameter +s-defmacro+ (tops "&defmacro!"))
 (defparameter +s-eval-now+ (tops "eval-now"))
 
@@ -38,14 +37,7 @@
 (defun comp-def (name value)
   (let ((value (comp-exp value)))
     (lambda ()
-      (defsetvar-context name (funcall value))
-      nil)))
-
-(defun comp-defglobal (name value)
-  (let ((value (comp-exp value)))
-    (lambda ()
-      (defglobal-context name (funcall value))
-      nil)))
+      (defsetvar-context name (funcall value)))))
 
 (defun comp-if (predicate then else)
   (let ((predicate (comp-exp predicate))
@@ -72,7 +64,7 @@
     (lambda ()
       (defglobal-context name (funcall func))
       (setf (my-symbol-macro name) t)
-      nil)))
+      name)))
 
 (defun comp-eval-now (exprs)
   (loop for x in exprs
@@ -96,7 +88,6 @@
              ((eq x +s-lambda+) (comp-lambda (car args) (cdr args)))
              ((eq x +s-set+) (comp-set (car args) (cadr args)))
              ((eq x +s-def+) (comp-def (car args) (cadr args)))
-             ((eq x +s-defglobal+) (comp-defglobal (car args) (cadr args)))
              ((eq x +s-if+) (comp-if (car args) (cadr args) (caddr args)))
              ((eq x +s-defmacro+) (comp-defmacro (car args) (cadr args) (cddr args)))
              ((eq x +s-eval-now+) (comp-eval-now args))
@@ -211,16 +202,6 @@
     (lambda (x)
       (or (null x) (eq x t) (my-symbol-p x))))
 
-(def-primitive "echo-raw"
-    (lambda (&rest stuff)
-      (dolist (x stuff)
-        (when x (format t "~A" x)))))
-
-(def-primitive "echo-esc"
-    (lambda (&rest stuff)
-      (dolist (x stuff)
-        (when x (format t "~A" x)))))
-
 (def-primitive "make-hash"
     (lambda ()
       (make-hash-table :test #'equal)))
@@ -252,7 +233,7 @@
                   (etypecase main
                     (cons (cdr (assoc i main :test #'same-name)))
                     (hash-table (gethash (name-of i) main))
-                    (context (lookup-var i main t))
+                    (context (cdr (lookup-var i main t)))
                     (null (return-from out nil)))))
           main)))
 
@@ -294,6 +275,18 @@
     (lambda (func &rest args)
       (with-output-to-string (*standard-output*)
         (apply func args))))
+
+(def-primitive "strcat"
+    (lambda (&rest args)
+      (format nil "~{~A~}" (remove nil args))))
+
+(def-primitive "esc"
+    (lambda (x)
+      (when x (format nil "~A" x))))
+
+(def-primitive "&defglobal!"
+    (lambda (name value)
+      (defglobal-context name value)))
 
 (with-open-file (in (merge-pathnames "template/toplevel.syt"
                                      (asdf:component-pathname

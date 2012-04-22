@@ -5,6 +5,11 @@
   (:export #:make-context
            #:compile-file
            #:exec-template
-           #:def-primitive))
+           #:exec-template-request
+           #:def-primitive
+           #:template-context
+           #:template-filename
+           #:template-function
+           #:template-timestamp))
 
 (in-package #:sytes.template)
