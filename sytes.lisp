@@ -10,6 +10,12 @@
 
 (defparameter *syte-names* (make-hash-table :test #'equal))
 (defparameter *current-syte* nil)
+(defparameter *syte-toplevel-context* (tmpl:make-context :name "SYTES"))
+
+(with-open-file (in (merge-pathnames "template/instance.syt"
+                                     (asdf:component-pathname
+                                      (asdf:find-system :sytes))))
+  (funcall (tmpl::compile (tmpl::parse in) :context *syte-toplevel-context*)))
 
 (defclass syte ()
   ((names :accessor syte-names
@@ -27,11 +33,11 @@
     (setf root
           (setf (syte-root syte) (truename root)))
     (setf context
-          (setf (syte-context syte) (tmpl:make-context :name (car names) :root root)))
-    (with-open-file (in (merge-pathnames "template/instance.syt"
-                                         (asdf:component-pathname
-                                          (asdf:find-system :sytes))))
-      (funcall (tmpl::compile (tmpl::parse in) :context context)))))
+          (setf (syte-context syte) (tmpl:make-context :name (car names) :root root :parent *syte-toplevel-context*)))
+    (let ((boot (merge-pathnames ".boot.syt" root)))
+      (when (probe-file boot)
+        (with-open-file (in boot)
+          (funcall (tmpl::compile (tmpl::parse in :context context))))))))
 
 (defun register-syte (syte)
   (loop for name in (syte-names syte)
