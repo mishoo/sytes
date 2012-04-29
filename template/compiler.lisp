@@ -282,7 +282,7 @@
 
 (def-primitive "esc"
     (lambda (x)
-      (when x (format nil "~A" x))))
+      (when x (tbnl:escape-for-html (format nil "~A" x)))))
 
 (def-primitive "&defglobal!"
     (lambda (name value)

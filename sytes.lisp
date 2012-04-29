@@ -52,8 +52,16 @@
     (format nil "No syte defined for host ~A" (hostname request)))
   (:method ((syte syte) request)
     (let* ((file (tbnl:script-name request))
+           (root (syte-root syte))
            (pos (position-if-not (lambda (x) (char= x #\/)) file)))
-      (setf file (subseq file pos))
+      (if pos
+          (setf file (subseq file pos))
+          (setf file ""))
+      (setf file (merge-pathnames file root))
+      (aif (fad:directory-exists-p file)
+           (setf file (merge-pathnames "index.syt" file))
+           (unless (probe-file file)
+             (setf file (make-pathname :defaults file :type "syt"))))
       (tmpl:exec-template-request file (syte-root syte) (syte-context syte)))))
 
 ;;; hunchentoot stuff
@@ -100,3 +108,6 @@
     (lambda (name)
       (tmpl:template-context
        (tmpl:compile-file name (syte-context *current-syte*)))))
+
+(defun def-syte-primitive (syte name func)
+  (tmpl:def-primitive name func (syte-context syte)))

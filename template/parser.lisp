@@ -160,7 +160,7 @@
                ((char= ch *token-start*)
                 (next)
                 (prog1
-                    (list* (tops "progn") (read-text))
+                    (list* (tops "strcat") (read-text))
                   (skip *token-stop*)))
                ((char= ch #\;) (skip-comment) (read-token))
                ((char= ch #\") (read-string))
