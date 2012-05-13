@@ -159,6 +159,8 @@
 (def-primitive "reverse" #'reverse)
 (def-primitive "nreverse" #'nreverse)
 (def-primitive "apply" #'apply)
+(def-primitive "not" #'not)
+(def-primitive "null?" #'null)
 
 (def-primitive "rplaca" #'rplaca)
 (def-primitive "rplacd" #'rplacd)

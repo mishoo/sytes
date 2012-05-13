@@ -62,7 +62,8 @@
            (setf file (merge-pathnames "index.syt" file))
            (unless (probe-file file)
              (setf file (make-pathname :defaults file :type "syt"))))
-      (tmpl:exec-template-request file (syte-root syte) (syte-context syte)))))
+      (or (tmpl:exec-template-request file (syte-root syte) (syte-context syte))
+          (setf (tbnl:return-code*) tbnl:+http-not-found+)))))
 
 ;;; hunchentoot stuff
 
@@ -111,3 +112,13 @@
 
 (defun def-syte-primitive (syte name func)
   (tmpl:def-primitive name func (syte-context syte)))
+
+(tmpl:def-primitive "http/set-status"
+    (lambda (status)
+      (when (tmpl:my-symbol-p status)
+        (setf status (tmpl:my-symbol-name status)))
+      (when (stringp status)
+        (let* ((name (format nil "+HTTP-~A+" (string-upcase status)))
+               (sym (find-symbol name :hunchentoot)))
+          (when sym (setf status (symbol-value sym)))))
+      (setf (tbnl:return-code*) status)))

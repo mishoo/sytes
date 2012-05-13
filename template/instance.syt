@@ -1,23 +1,23 @@
 { ; -*- lisp -*-
 (eval-now
 
- ;; this will be initialized to a fresh hash-table for each syte request
- (defglobal *attributes* nil)
-
- ;; autohandler/dhandler stuff
+ ;; autohandler stuff
  (defmacro @inherit (name)
    (set! *autohandler* name) nil)
 
  (defun @attr (name . value)
-   (if value
-       (set-hash *attributes* name (car value))
-       (get-hash *attributes* name)))
+   (let ((attr (*attributes*)))
+     (if value
+         (set-hash attr name (car value))
+         (get-hash attr name))))
 
- (defmacro import (template . names)
+ (defmacro @import (template . names)
    `(let ((ctx (%import ,template)))
-      ,@(mapcar (lambda (name)
-                  `(&defglobal! ,name (%dot-lookup ctx ,name)))
-                names)))
+      ,@(if names
+            (mapcar (lambda (name)
+                      `(&defglobal! ,name (%dot-lookup ctx ,name)))
+                    names)
+            `(ctx))))
 
  )
 }

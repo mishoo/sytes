@@ -10,6 +10,8 @@
            #:template-context
            #:template-filename
            #:template-function
-           #:template-timestamp))
+           #:template-timestamp
+           #:my-symbol-p
+           #:my-symbol-name))
 
 (in-package #:sytes.template)
