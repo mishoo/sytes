@@ -122,3 +122,20 @@
                (sym (find-symbol name :hunchentoot)))
           (when sym (setf status (symbol-value sym)))))
       (setf (tbnl:return-code*) status)))
+
+
+;;; entry point for buildapp
+
+(defparameter *running* t)
+
+(defun main (argv)
+  (declare (ignore argv))
+  (sb-daemon:daemonize :output "/tmp/sytes.output"
+                       :error "/tmp/sytes.error"
+                       :exit-parent t
+                       :sigterm (lambda (sig)
+                                  (declare (ignore sig))
+                                  (setf *running* nil)))
+  (setf *running* t)
+  (start-server)
+  (loop while *running* do (sleep 1)))
