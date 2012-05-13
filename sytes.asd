@@ -13,7 +13,8 @@
                #:cl-unicode
                #:split-sequence
                #:cl-fad
-               #:bordeaux-threads)
+               #:bordeaux-threads
+               #:sb-daemon)
   :components ((:file "package")
                (:module "template"
                         :serial t
