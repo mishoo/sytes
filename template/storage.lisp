@@ -7,8 +7,8 @@
   (function))
 
 (defparameter *compile-cache* (make-hash-table :test #'equal))
-(defparameter *autohandler* "autohandler")
-(defparameter *dhandler* "dhandler")
+(defparameter *autohandler* "autohandler.syt")
+(defparameter *dhandler* "dhandler.syt")
 (defparameter *compiler-lock* (bt:make-lock "SYTES.COMPILER"))
 (defparameter *attributes* nil)
 
