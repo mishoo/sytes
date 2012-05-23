@@ -17,8 +17,8 @@
       (let ((list (mapcar #'comp-exp list)))
         (lambda ()
           (loop for exp in list
-             for value = (funcall exp)
-             finally (return value))))
+                for value = (funcall exp)
+                finally (return value))))
       (comp-exp (car list))))
 
 (defun comp-lambda (args body)
@@ -68,8 +68,8 @@
 
 (defun comp-eval-now (exprs)
   (loop for x in exprs
-     for f = (comp-exp x)
-     do (funcall f))
+        for f = (comp-exp x)
+        do (funcall f))
   (lambda () nil))
 
 (defun comp-exp (x)
@@ -111,7 +111,7 @@
         (unwind-protect
              (progn
                (loop for (name val) on defs by #'cddr do
-                    (defvar-context (my-symbol-in-context name ctx)
+                 (defvar-context (my-symbol-in-context name ctx)
                         val ctx))
                (funcall exp))
           (setf (context-env ctx) env))))))
