@@ -278,9 +278,18 @@
       (with-output-to-string (*standard-output*)
         (apply func args))))
 
-(def-primitive "strcat"
-    (lambda (&rest args)
-      (format nil "~{~A~}" (remove nil args))))
+(labels ((strcat (args out)
+           (dolist (a args)
+             (when a
+               (typecase a
+                 (string (write-string a out))
+                 (character (write-char a out))
+                 (list (strcat a out))
+                 (t (format out "~A" a)))))))
+  (def-primitive "strcat"
+      (lambda (&rest args)
+        (with-output-to-string (out)
+          (strcat args out)))))
 
 (def-primitive "esc"
     (lambda (x)
