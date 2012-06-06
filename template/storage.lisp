@@ -24,16 +24,20 @@
   `((,(tops "*autohandler*") . ,*autohandler*)
     (,(tops "*template*") . ,filename)))
 
-(defun compile-file (filename &optional (context *current-context*))
-  (setf filename (full-filename filename context))
+(defun compile-file (filename &key (parent-context *current-context*) sub-context)
+  (unless (pathnamep filename)
+    (setf filename (full-filename filename parent-context)))
   (bt:with-lock-held (*compiler-lock*)
     (let ((timestamp (file-write-date filename))
-          (cached (gethash filename *compile-cache*)))
+          (cached (gethash filename *compile-cache*))
+          (was-cached t))
       (unless (and cached (<= timestamp (template-timestamp cached)))
+        (setf was-cached nil)
         (with-open-file (in filename)
-          (let* ((ctx (make-context :name filename
-                                    :parent context
-                                    :global (default-global-context filename)))
+          (let* ((ctx (or sub-context
+                          (make-context :name filename
+                                        :parent parent-context
+                                        :global (default-global-context filename))))
                  (*current-context* ctx)
                  (func (let ((*token-start* *default-token-start*)
                              (*token-stop* *default-token-stop*))
@@ -48,13 +52,13 @@
                                            :filename (truename filename)
                                            :context ctx
                                            :function func)))))))
-      cached)))
+      (values cached was-cached))))
 
 (defun exec-template-request (filename rootdir parent-context &key base-comp)
   (unless (probe-file filename)
     (setf filename (find-file-up *dhandler* rootdir filename)))
   (when filename
-    (let* ((tmpl (compile-file filename parent-context))
+    (let* ((tmpl (compile-file filename :parent-context parent-context))
            (ctx (template-context tmpl)))
       ;; at this point the template is compiled, but not run
       ;; if it replaces the *autohandler* variable, we should find it here.

@@ -15,7 +15,7 @@
    `(let ((ctx (%import ,template)))
       ,@(if names
             (mapcar (lambda (name)
-                      `(&defglobal! ,name (%dot-lookup ctx ,name)))
+                      `(&defglobal! ,name (&dot-lookup ctx ,name)))
                     names)
             `(ctx))))
 

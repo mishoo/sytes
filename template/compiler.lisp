@@ -227,7 +227,7 @@
   (defun same-name (a b)
     (string= (name-of a) (name-of b)))
 
-  (def-primitive "%dot-lookup"
+  (def-primitive "&dot-lookup"
       (lambda (main &rest props)
         (block out
           (dolist (i props)

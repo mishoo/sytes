@@ -58,7 +58,7 @@
 
  (define-setter car (cell) (value) `(rplaca ,cell ,value))
  (define-setter cdr (cell) (value) `(rplacd ,cell ,value))
- (define-setter %dot-lookup (main . path) (value)
+ (define-setter &dot-lookup (main . path) (value)
                 `(%dot-set ,main ,value ,@path))
 
  (defmacro inc! (x . delta)

@@ -28,16 +28,24 @@
    :names (error "Syte names are missing")
     :root (error "Syte root is missing")))
 
+(defun maybe-exec-boot (syte &key
+                               (boot ".boot.syt")
+                               (root (syte-root syte)))
+  (let ((boot (merge-pathnames boot root)))
+    (when (probe-file boot)
+      (multiple-value-bind (tmpl was-cached)
+          (tmpl::compile-file boot
+                              :parent-context (syte-context syte)
+                              :sub-context (syte-context syte))
+        (unless was-cached
+          (funcall (tmpl:template-function tmpl)))))))
+
 (defmethod initialize-instance :after ((syte syte) &key names root context &allow-other-keys)
   (unless context
     (setf root
           (setf (syte-root syte) (truename root)))
     (setf context
-          (setf (syte-context syte) (tmpl:make-context :name (car names) :root root :parent *syte-toplevel-context*)))
-    (let ((boot (merge-pathnames ".boot.syt" root)))
-      (when (probe-file boot)
-        (with-open-file (in boot)
-          (funcall (tmpl::compile (tmpl::parse in :context context))))))))
+          (setf (syte-context syte) (tmpl:make-context :name (car names) :root root :parent *syte-toplevel-context*)))))
 
 (defun register-syte (syte)
   (loop for name in (syte-names syte)
@@ -51,6 +59,8 @@
   (:method ((syte (eql nil)) request)
     (format nil "No syte defined for host ~A" (hostname request)))
   (:method ((syte syte) request)
+    (maybe-exec-boot syte)
+    ;; process the requested file
     (let* ((file (tbnl:script-name request))
            (root (syte-root syte))
            (pos (position-if-not (lambda (x) (char= x #\/)) file)))

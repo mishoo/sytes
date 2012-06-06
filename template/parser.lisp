@@ -92,7 +92,7 @@
                  ;; handle dot syntax
                  (let ((path (split-sequence:split-sequence #\. sym)))
                    (if (cdr path)
-                       `(,(tops "%dot-lookup")
+                       `(,(tops "&dot-lookup")
                          ,(my-symbol-in-context (car path) context)
                          ,@(mapcar (lambda (x)
                                      (list (tops "quote")
