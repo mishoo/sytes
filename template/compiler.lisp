@@ -8,6 +8,8 @@
 (defparameter +s-def+ (tops "&def!"))
 (defparameter +s-defmacro+ (tops "&defmacro!"))
 (defparameter +s-eval-now+ (tops "eval-now"))
+(defparameter +s-catch+ (tops "catch"))
+(defparameter +s-throw+ (tops "throw"))
 
 (defun comp-constant (x)
   (lambda () x))
@@ -37,7 +39,8 @@
 (defun comp-def (name value)
   (let ((value (comp-exp value)))
     (lambda ()
-      (defsetvar-context name (funcall value)))))
+      (defsetvar-context name nil)
+      (setvar-context name (funcall value)))))
 
 (defun comp-if (predicate then else)
   (let ((predicate (comp-exp predicate))
@@ -72,6 +75,20 @@
         do (funcall f))
   (lambda () nil))
 
+(defun comp-catch (tag body)
+  (let ((tag (comp-exp tag))
+        (body (comp-sequence body)))
+    (lambda ()
+      (catch (funcall tag)
+        (funcall body)))))
+
+(defun comp-throw (tag value)
+  (let ((tag (comp-exp tag))
+        (value (comp-exp value)))
+    (lambda ()
+      (throw (funcall tag)
+        (funcall value)))))
+
 (defun comp-exp (x)
   (cond
     ((or (numberp x)
@@ -91,6 +108,8 @@
              ((eq x +s-if+) (comp-if (car args) (cadr args) (caddr args)))
              ((eq x +s-defmacro+) (comp-defmacro (car args) (cadr args) (cddr args)))
              ((eq x +s-eval-now+) (comp-eval-now args))
+             ((eq x +s-catch+) (comp-catch (car args) (cdr args)))
+             ((eq x +s-throw+) (comp-throw (car args) (cadr args)))
              ((my-symbol-macro x)
               (let* ((code (apply (cdr (lookup-var x)) args)))
                 (comp-exp code)))
@@ -161,6 +180,8 @@
 (def-primitive "apply" #'apply)
 (def-primitive "not" #'not)
 (def-primitive "null?" #'null)
+(def-primitive "member" (lambda (item list &key (test #'das-eq))
+                          (member item list :test test)))
 
 (def-primitive "rplaca" #'rplaca)
 (def-primitive "rplacd" #'rplacd)
@@ -289,7 +310,10 @@
   (def-primitive "strcat"
       (lambda (&rest args)
         (with-output-to-string (out)
-          (strcat args out)))))
+          (strcat args out))))
+  (def-primitive "print"
+      (lambda (&rest args)
+        (strcat args *standard-output*))))
 
 (def-primitive "esc"
     (lambda (x)
