@@ -69,7 +69,7 @@
           (setf file ""))
       (setf file (merge-pathnames file root))
       (aif (fad:directory-exists-p file)
-           (setf file (merge-pathnames "index.syt" file))
+           (setf file (merge-pathnames "index.syt" (fad:pathname-as-directory file)))
            (unless (probe-file file)
              (setf file (make-pathname :defaults file :type "syt"))))
       (or (tmpl:exec-template-request file (syte-root syte) (syte-context syte))
