@@ -75,4 +75,29 @@
                       `(- ,(car delta) ,val)
                       `(1- ,val))))))
 
+ (defmacro foreach (name lst . body)
+   `(strcat (mapcar (lambda (,name)
+                      ,@body) ,lst)))
+
+ (defmacro foreach* (name lst . body)
+   (let ((vrec (gensym))
+         (vlst (gensym)))
+     `((lambda ()
+         (define (&break)
+             (throw &break))
+         (define (&continue)
+             (throw &continue))
+         (define (,vrec ,vlst &index &first)
+             (define &last (not (cdr ,vlst)))
+           (if ,vlst
+               (progn
+                 (catch &continue
+                   (print ((lambda (,name)
+                             ,@body)
+                           (car ,vlst))))
+                 (,vrec (cdr ,vlst) (1+ &index) nil))))
+         (capture-output (lambda ()
+                           (catch &break
+                             (,vrec ,lst 0 t))))))))
+
  )}
