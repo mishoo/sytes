@@ -25,6 +25,13 @@
  (defmacro unless (pred . body)
    `(if ,pred nil (progn ,@body)))
 
+ (defmacro let (defs . body)
+   `((lambda ,(mapcar (lambda (x)
+                        (if (cons? x) (car x) x)) defs)
+       ,@body)
+     ,@(mapcar (lambda (x)
+                 (if (cons? x) (cadr x) nil)) defs)))
+
  (defmacro prog1 (exp . body)
    (let ((ret (gensym)))
      `(let ((,ret ,exp))
@@ -93,13 +100,6 @@
    (if (cons? x)
        `(&def! ,(car x) (lambda ,(cdr x) ,@val))
        `(&def! ,x ,(car val))))
-
- (defmacro let (defs . body)
-   `((lambda ,(mapcar (lambda (x)
-                        (if (cons? x) (car x) x)) defs)
-       ,@body)
-     ,@(mapcar (lambda (x)
-                 (if (cons? x) (cadr x) nil)) defs)))
 
  (defglobal %set!-setters (make-hash))
 
