@@ -313,7 +313,16 @@
           (strcat args out))))
   (def-primitive "print"
       (lambda (&rest args)
-        (strcat args *standard-output*))))
+        (strcat args *standard-output*)))
+  (def-primitive "trim"
+      (lambda (str)
+        (string-trim '(#\Space
+                       #\Newline
+                       #\Tab
+                       #\Page
+                       #\Line_Separator
+                       #\Paragraph_Separator
+                       #\NO-BREAK_SPACE) str))))
 
 (def-primitive "esc"
     (lambda (x)

@@ -19,6 +19,70 @@
  (&defmacro! defmacro (name args . body)
              `(eval-now (&defmacro! ,name ,args ,@body)))
 
+ (defmacro when (condition . body)
+   `(if ,condition (progn ,@body)))
+
+ (defmacro unless (pred . body)
+   `(if ,pred nil (progn ,@body)))
+
+ (defmacro prog1 (exp . body)
+   (let ((ret (gensym)))
+     `(let ((,ret ,exp))
+        ,@body
+        ,ret)))
+
+ (defmacro prog2 (exp1 exp2 . body)
+   `(progn
+      ,exp1
+      (prog1 ,exp2 ,@body)))
+
+ (defmacro or exps
+   (when exps
+     (let ((x (gensym "OR")))
+       `(let ((,x ,(car exps)))
+          (if ,x ,x (or ,@(cdr exps)))))))
+
+ (defmacro and exprs
+   (if exprs
+       (let ((x (gensym "AND")))
+         `(let ((,x ,(car exprs)))
+            (when ,x
+              ,(if (cdr exprs) `(and ,@(cdr exprs)) x))))
+       t))
+
+ (defmacro cond cases
+   (if cases
+       `(if ,(caar cases)
+            (progn ,@(cdar cases))
+            (cond ,@(cdr cases)))))
+
+ (defmacro labels (defs . body)
+   `((lambda ()
+       ,@(mapcar (lambda (x)
+                   (let ((name (car x))
+                         (args (cadr x))
+                         (body (cddr x)))
+                     `(define (,name ,@args) ,@body)))
+                 defs)
+       ,@body)))
+
+ (defmacro case (expr . cases)
+   (let ((vexpr (gensym "CASE")))
+     `(let ((,vexpr ,expr))
+        ,(labels ((recur (cases)
+                    (when cases
+                      (if (and (listp (caar cases)) (caar cases))
+                          `(if (member ,vexpr ',(caar cases))
+                               (progn ,@(cdar cases))
+                               ,(recur (cdr cases)))
+                          (if (and (not (cdr cases))
+                                   (member (caar cases) '(otherwise t)))
+                              `(progn ,@(cdar cases))
+                              `(if (eq ,vexpr ',(caar cases))
+                                   (progn ,@(cdar cases))
+                                   ,(recur (cdr cases))))))))
+           (recur cases)))))
+
  (defmacro defglobal (name value)
    `(&defglobal! ',name ,value))
 
@@ -59,7 +123,7 @@
  (define-setter car (cell) (value) `(rplaca ,cell ,value))
  (define-setter cdr (cell) (value) `(rplacd ,cell ,value))
  (define-setter &dot-lookup (main . path) (value)
-                `(%dot-set ,main ,value ,@path))
+   `(%dot-set ,main ,value ,@path))
 
  (defmacro inc! (x . delta)
    (let ((val (gensym)))

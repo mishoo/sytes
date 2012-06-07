@@ -73,7 +73,9 @@
          (read-symbol-chunk ()
            (let ((sym (read-while (lambda (ch)
                                     (when ch
-                                      (not (member ch '(#\( #\) #\[ #\] #\` #\' #\, #\{ #\} #\\ #\|
+                                      (not (member ch `(,*token-start*
+                                                        ,*token-stop*
+                                                        #\( #\) #\[ #\] #\` #\' #\, #\{ #\} #\\ #\|
                                                         #\Space
                                                         #\Newline
                                                         #\Tab
