@@ -6,6 +6,7 @@
   (timestamp)
   (function))
 
+(defparameter *current-template* nil)
 (defparameter *compile-cache* (make-hash-table :test #'equal))
 (defparameter *autohandler* "autohandler.syt")
 (defparameter *dhandler* "dhandler.syt")
@@ -39,19 +40,16 @@
                                         :parent parent-context
                                         :global (default-global-context filename))))
                  (*current-context* ctx)
+                 (tmpl (make-template :filename (truename filename)
+                                      :context ctx))
                  (func (let ((*token-start* *default-token-start*)
-                             (*token-stop* *default-token-stop*))
+                             (*token-stop* *default-token-stop*)
+                             (*current-template* tmpl))
+                         (setf cached
+                               (setf (gethash filename *compile-cache*) tmpl))
                          (compile (parse in :template-name filename :context ctx)))))
-            (if cached
-                (setf (template-timestamp cached) timestamp
-                      (template-function cached) func
-                      (template-context cached) ctx)
-                (setf cached
-                      (setf (gethash filename *compile-cache*)
-                            (make-template :timestamp timestamp
-                                           :filename (truename filename)
-                                           :context ctx
-                                           :function func)))))))
+            (setf (template-timestamp cached) timestamp
+                  (template-function cached) func))))
       (values cached was-cached))))
 
 (defun exec-template-request (filename rootdir parent-context &key base-comp)
@@ -69,7 +67,8 @@
           ((setf ah (find-file-up ah rootdir (template-filename tmpl)))
            ;; have autohandler
            (let ((call-me (lambda (&rest args)
-                            (apply (template-function tmpl) "call-next" base-comp args))))
+                            (let ((*current-template* tmpl))
+                              (apply (template-function tmpl) "call-next" base-comp args)))))
              (exec-template-request ah rootdir parent-context :base-comp call-me)))
           (t
            (let ((*attributes* (make-hash-table :test #'equal)))

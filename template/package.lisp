@@ -12,6 +12,8 @@
            #:template-function
            #:template-timestamp
            #:my-symbol-p
-           #:my-symbol-name))
+           #:my-symbol-name
+
+           #:*current-template*))
 
 (in-package #:sytes.template)

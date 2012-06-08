@@ -120,8 +120,10 @@
 
 (tmpl:def-primitive "%import"
     (lambda (name)
-      (tmpl:template-context
-       (tmpl:compile-file name (syte-context *current-syte*)))))
+      (let* ((current tmpl:*current-template*)
+             (filename (tmpl:template-filename current)))
+        (tmpl:template-context
+         (tmpl:compile-file (merge-pathnames name filename) :parent-context (syte-context *current-syte*))))))
 
 (defun def-syte-primitive (syte name func)
   (tmpl:def-primitive name func (syte-context syte)))
