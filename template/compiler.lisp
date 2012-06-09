@@ -94,7 +94,9 @@
     ((or (numberp x)
          (null x)
          (eq x t)
-         (stringp x)) (comp-constant x))
+         (stringp x)
+         (characterp x)
+         (functionp x)) (comp-constant x))
     ((listp x)
      (let ((x (car x))
            (args (cdr x)))
@@ -176,6 +178,7 @@
 (def-primitive "mapc" #'mapc)
 (def-primitive "reverse" #'reverse)
 (def-primitive "nreverse" #'nreverse)
+(def-primitive "copy-list" #'copy-list)
 (def-primitive "apply" #'apply)
 (def-primitive "not" #'not)
 (def-primitive "null?" #'null)
@@ -329,6 +332,9 @@
                        #\NO-BREAK_SPACE)
                      (with-output-to-string (out)
                        (strcat str out)))))
+  (def-primitive "string-trim" #'string-trim)
+  (def-primitive "string-left-trim" #'string-left-trim)
+  (def-primitive "string-right-trim" #'string-right-trim)
   (def-primitive "string-upcase"
       (lambda (str)
         (with-output-to-string (out)
@@ -341,6 +347,23 @@
       (lambda (str)
         (with-output-to-string (out)
           (string-capitalize (strcat str out))))))
+
+(def-primitive "sort" #'stable-sort)
+
+(def-primitive "regexp-split" #'ppcre:split)
+(def-primitive "regexp-replace"
+    (lambda (rx str replacement)
+      (ppcre:regex-replace-all
+       rx str
+       (lambda (str start end match-start match-end reg-starts reg-ends)
+         (declare (ignorable str start end match-start match-end reg-starts reg-ends))
+         (etypecase replacement
+           (function (let ((match (subseq str match-start match-end)))
+                       (apply replacement match (loop :for i :across reg-starts
+                                                      :for j :across reg-ends
+                                                      :collect (subseq str i j)))))
+           (string replacement)
+           (character (string replacement)))))))
 
 (def-primitive "esc"
     (lambda (x)

@@ -56,21 +56,27 @@
            (unless (char= (next) ch)
              (croak "Expecting '~C'" ch)))
 
-         (read-string ()
+         (read-escaped (start stop addesc)
            (skip-whitespace)
-           (skip #\")
+           (skip start)
            (with-output-to-string (ret)
              (loop for ch = (next)
                    with escaped = nil
                    do (cond
-                        ((not ch) (croak "Unterminated string literal"))
+                        ((not ch) (croak "Unterminated string or regexp"))
                         (escaped (write-char ch ret)
                                  (setf escaped nil))
-                        ((char= ch #\\) (setf escaped t))
-                        ((char= ch #\") (return))
+                        ((char= ch #\\)
+                         (setf escaped t)
+                         (when addesc
+                           (write-char ch ret)))
+                        ((char= ch stop) (return))
                         (t (write-char ch ret))))))
 
-         (read-symbol-chunk ()
+         (read-string ()
+           (read-escaped #\" #\" nil))
+
+         (read-symbol-chunk (&optional noerror)
            (let ((sym (read-while (lambda (ch)
                                     (when ch
                                       (not (member ch `(,*token-start*
@@ -83,7 +89,8 @@
                                                         #\Line_Separator
                                                         #\Paragraph_Separator
                                                         #\NO-BREAK_SPACE))))))))
-             (when (zerop (length sym))
+             (when (and (not noerror)
+                        (zerop (length sym)))
                (croak "Apparently can't deal with character ~A" (peek)))
              sym))
 
@@ -154,6 +161,27 @@
              (t
               (list (tops "unquote") (read-token)))))
 
+         (read-regexp ()
+           (let ((str (read-escaped #\/ #\/ t))
+                 (mods (string-downcase (read-while (lambda (ch)
+                                                      (member ch '(#\m #\s #\i)))))))
+             (ppcre:create-scanner str :case-insensitive-mode (find #\i mods)
+                                       :multi-line-mode (find #\m mods)
+                                       :single-line-mode (find #\s mods))))
+
+         (read-sharp ()
+           (skip #\#)
+           (case (peek)
+             (#\\
+              (next)
+              (let ((first (next))
+                    (name (read-symbol-chunk t)))
+                (read-from-string (format nil "#\\~A~A" first name))))
+             (#\/ (read-regexp))
+             (#\( (list* (tops "vector") (read-list #\( #\))))
+             (#\: (next) (make-my-symbol :name (read-symbol)))
+             (otherwise (croak "Unsupported sharp syntax #~A" (peek)))))
+
          (read-token ()
            (skip-whitespace)
            (setf tokline line
@@ -171,6 +199,7 @@
                ((char= ch #\') (read-quote))
                ((char= ch #\`) (read-qq))
                ((char= ch #\,) (read-comma))
+               ((char= ch #\#) (read-sharp))
                (ch (read-symbol)))))
 
          (read-text-chunk ()
