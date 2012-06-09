@@ -57,7 +57,8 @@
     (setf filename (find-file-up *dhandler* rootdir filename)))
   (when filename
     (let* ((tmpl (compile-file filename :parent-context parent-context))
-           (ctx (template-context tmpl)))
+           (ctx (make-context :name filename
+                              :parent (template-context tmpl))))
       ;; at this point the template is compiled, but not run
       ;; if it replaces the *autohandler* variable, we should find it here.
       (let ((ah (aif (lookup-var (tops "*autohandler*") ctx t)
@@ -68,11 +69,11 @@
            ;; have autohandler
            (let ((call-me (lambda (&rest args)
                             (let ((*current-template* tmpl))
-                              (apply (template-function tmpl) "call-next" base-comp args)))))
+                              (apply (template-function tmpl) ctx "call-next" base-comp args)))))
              (exec-template-request ah rootdir parent-context :base-comp call-me)))
           (t
            (let ((*attributes* (make-hash-table :test #'equal)))
-             (funcall (template-function tmpl) "call-next" base-comp))))))))
+             (funcall (template-function tmpl) ctx "call-next" base-comp))))))))
 
 (defun find-file-up (lookup root start)
   (when (probe-file start)

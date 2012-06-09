@@ -121,10 +121,9 @@
     (t (error "Unsupported syntax: ~A" x))))
 
 (defun compile (exp &key (context *current-context*))
-  (let* ((ctx context)
-         (*current-context* context)
+  (let* ((*current-context* context)
          (exp (comp-exp exp)))
-    (lambda (&rest defs)
+    (lambda (ctx &rest defs)
       (let ((*current-context* ctx)
             (env (context-env ctx)))
         (unwind-protect
@@ -252,6 +251,9 @@
       (lambda (main &rest props)
         (block out
           (dolist (i props)
+            t1 (when (functionp main)
+                 (setf main (funcall main))
+                 (go t1))
             (setf main
                   (etypecase main
                     (cons (cdr (assoc i main :test #'same-name)))
@@ -263,16 +265,18 @@
   (def-primitive "%dot-set"
       (lambda (main value &rest props)
         (loop for i on props
-           for prop = (name-of (car i))
-           do (cond
-                ((null (cdr i))
-                 (setf (gethash prop main) value))
-                (t
-                 (let ((tmp (gethash prop main)))
-                   (unless tmp
-                     (setf tmp (make-hash-table :test #'equal)
-                           (gethash prop main) tmp))
-                   (setf main tmp)))))
+              for prop = (name-of (car i))
+              do (loop while (functionp main)
+                       do (setf main (funcall main)))
+                 (cond
+                   ((null (cdr i))
+                    (setf (gethash prop main) value))
+                   (t
+                    (let ((tmp (gethash prop main)))
+                      (unless tmp
+                        (setf tmp (make-hash-table :test #'equal)
+                              (gethash prop main) tmp))
+                      (setf main tmp)))))
         value)))
 
 (def-primitive "fmt" (lambda (fmt &rest args)
@@ -322,7 +326,21 @@
                        #\Page
                        #\Line_Separator
                        #\Paragraph_Separator
-                       #\NO-BREAK_SPACE) str))))
+                       #\NO-BREAK_SPACE)
+                     (with-output-to-string (out)
+                       (strcat str out)))))
+  (def-primitive "string-upcase"
+      (lambda (str)
+        (with-output-to-string (out)
+          (string-upcase (strcat str out)))))
+  (def-primitive "string-downcase"
+      (lambda (str)
+        (with-output-to-string (out)
+          (string-downcase (strcat str out)))))
+  (def-primitive "string-capitalize"
+      (lambda (str)
+        (with-output-to-string (out)
+          (string-capitalize (strcat str out))))))
 
 (def-primitive "esc"
     (lambda (x)
@@ -335,4 +353,4 @@
 (with-open-file (in (merge-pathnames "template/toplevel.syt"
                                      (asdf:component-pathname
                                       (asdf:find-system :sytes))))
-  (funcall (compile (parse in))))
+  (funcall (compile (parse in)) *toplevel-context*))

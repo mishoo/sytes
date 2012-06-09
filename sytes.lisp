@@ -15,7 +15,8 @@
 (with-open-file (in (merge-pathnames "template/instance.syt"
                                      (asdf:component-pathname
                                       (asdf:find-system :sytes))))
-  (funcall (tmpl::compile (tmpl::parse in) :context *syte-toplevel-context*)))
+  (funcall (tmpl::compile (tmpl::parse in) :context *syte-toplevel-context*)
+           *syte-toplevel-context*))
 
 (defclass syte ()
   ((names :accessor syte-names
@@ -33,12 +34,13 @@
                                (root (syte-root syte)))
   (let ((boot (merge-pathnames boot root)))
     (when (probe-file boot)
-      (multiple-value-bind (tmpl was-cached)
-          (tmpl::compile-file boot
-                              :parent-context (syte-context syte)
-                              :sub-context (syte-context syte))
-        (unless was-cached
-          (funcall (tmpl:template-function tmpl)))))))
+      (let ((ctx (syte-context syte)))
+        (multiple-value-bind (tmpl was-cached)
+            (tmpl::compile-file boot
+                                :parent-context ctx
+                                :sub-context ctx)
+          (unless was-cached
+            (funcall (tmpl:template-function tmpl) ctx)))))))
 
 (defmethod initialize-instance :after ((syte syte) &key names root context &allow-other-keys)
   (unless context
@@ -69,12 +71,16 @@
           (setf file (subseq file pos))
           (setf file ""))
       (setf file (merge-pathnames file root))
-      (if (fad:directory-exists-p file)
-          (if (fad:directory-pathname-p file)
-              (setf file (merge-pathnames "index.syt" file))
-              (tbnl:redirect (format nil "~A/" script)))
-          (unless (probe-file file)
-            (setf file (make-pathname :defaults file :type "syt"))))
+      (cond
+        ((fad:directory-exists-p file)
+         (if (fad:directory-pathname-p file)
+             (setf file (merge-pathnames "index.syt" file))
+             (tbnl:redirect (format nil "~A/" script))))
+        (t
+         (when (fad:directory-pathname-p file)
+           (setf file (fad:pathname-as-file file)))
+         (unless (probe-file file)
+           (setf file (make-pathname :defaults file :type "syt")))))
       (or (tmpl:exec-template-request file (syte-root syte) (syte-context syte))
           (setf (tbnl:return-code*) tbnl:+http-not-found+)))))
 
