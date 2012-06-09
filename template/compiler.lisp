@@ -322,7 +322,7 @@
       (lambda (&rest args)
         (strcat args *standard-output*)))
   (def-primitive "trim"
-      (lambda (str)
+      (lambda (&rest args)
         (string-trim '(#\Space
                        #\Newline
                        #\Tab
@@ -331,22 +331,22 @@
                        #\Paragraph_Separator
                        #\NO-BREAK_SPACE)
                      (with-output-to-string (out)
-                       (strcat str out)))))
+                       (strcat args out)))))
   (def-primitive "string-trim" #'string-trim)
   (def-primitive "string-left-trim" #'string-left-trim)
   (def-primitive "string-right-trim" #'string-right-trim)
   (def-primitive "string-upcase"
-      (lambda (str)
+      (lambda (&rest args)
         (with-output-to-string (out)
-          (string-upcase (strcat str out)))))
+          (string-upcase (strcat args out)))))
   (def-primitive "string-downcase"
-      (lambda (str)
+      (lambda (&rest args)
         (with-output-to-string (out)
-          (string-downcase (strcat str out)))))
+          (string-downcase (strcat args out)))))
   (def-primitive "string-capitalize"
-      (lambda (str)
+      (lambda (&rest args)
         (with-output-to-string (out)
-          (string-capitalize (strcat str out))))))
+          (string-capitalize (strcat args out))))))
 
 (def-primitive "sort" #'stable-sort)
 
