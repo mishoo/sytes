@@ -101,14 +101,18 @@
                (error ()
                  ;; handle dot syntax
                  (let ((path (split-sequence:split-sequence #\. sym)))
-                   (if (cdr path)
-                       `(,(tops "&dot-lookup")
-                         ,(my-symbol-in-context (car path) context)
-                         ,@(mapcar (lambda (x)
-                                     (list (tops "quote")
-                                           (my-symbol-in-context x context)))
-                                   (cdr path)))
-                       (my-symbol-in-context sym context)))))))
+                   (cond
+                     ((cdr path)
+                      `(,(tops "&dot-lookup")
+                        ,(my-symbol-in-context (car path) context)
+                        ,@(mapcar (lambda (x)
+                                    (list (tops "quote")
+                                          (my-symbol-in-context x context)))
+                                  (cdr path))))
+                     ((char= (char sym 0) #\:)
+                      (read-from-string sym))
+                     (t
+                      (my-symbol-in-context sym context))))))))
 
          (skip-comment ()
            (skip #\;)

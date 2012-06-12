@@ -92,6 +92,7 @@
 (defclass sytes-acceptor (tbnl:acceptor)
   ()
   (:default-initargs
+   :error-template-directory nil
    :access-log-destination "/tmp/sytes.log"
     :message-log-destination "/tmp/sytes.messages"
     :port 7379
@@ -121,18 +122,23 @@
          (*current-syte* syte))
     (syte-request-handler syte request)))
 
+(defmethod tbnl:acceptor-status-message ((acceptor sytes-acceptor) code &key &allow-other-keys)
+  (unless (= code 404)
+    (call-next-method)))
+
 
 ;;; some more primitives
 
-(tmpl:def-primitive "%import"
+(tmpl:def-primitive "require"
     (lambda (name)
       (let* ((current tmpl:*current-template*)
-             (filename (tmpl:template-filename current)))
-        (tmpl:template-context
-         (tmpl:compile-file (merge-pathnames name filename) :parent-context (syte-context *current-syte*))))))
-
-(defun def-syte-primitive (syte name func)
-  (tmpl:def-primitive name func (syte-context syte)))
+             (filename (tmpl:template-filename current))
+             (tmpl (tmpl:compile-file (merge-pathnames name filename)
+                                      :parent-context (syte-context *current-syte*)))
+             (ctx (tmpl:make-context :name (tmpl:template-filename tmpl)
+                                     :parent (tmpl:template-context tmpl))))
+        (funcall (tmpl:template-function tmpl) ctx)
+        ctx)))
 
 (tmpl:def-primitive "http/set-status"
     (lambda (status)
@@ -143,6 +149,17 @@
                (sym (find-symbol name :hunchentoot)))
           (when sym (setf status (symbol-value sym)))))
       (setf (tbnl:return-code*) status)))
+
+(tmpl:def-primitive "http/script-name"
+    (lambda ()
+      (tbnl:script-name*)))
+
+(tmpl:def-primitive "http/parameter"
+    (lambda (name)
+      (tbnl:parameter name)))
+
+(defun def-syte-primitive (syte name func)
+  (tmpl:def-primitive name func (syte-context syte)))
 
 
 ;;; entry point for buildapp

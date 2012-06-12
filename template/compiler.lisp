@@ -96,6 +96,7 @@
          (eq x t)
          (stringp x)
          (characterp x)
+         (keywordp x)
          (functionp x)) (comp-constant x))
     ((listp x)
      (let ((x (car x))
@@ -228,8 +229,11 @@
       (or (null x) (eq x t) (my-symbol-p x))))
 
 (def-primitive "make-hash"
-    (lambda ()
-      (make-hash-table :test #'equal)))
+    (lambda (&rest props)
+      (let ((hash (make-hash-table :test #'equal)))
+        (loop for (key val) on props by #'cddr
+              do (setf (gethash key hash) val))
+        hash)))
 
 (labels ((name-of (x)
            (cond
