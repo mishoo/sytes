@@ -12,6 +12,16 @@
 (defparameter *current-syte* nil)
 (defparameter *syte-toplevel-context* (tmpl:make-context :name "SYTES"))
 
+(defmacro report-time-spent (name &body body)
+  (let ((t1 (gensym)))
+    `(let ((,t1 (get-internal-real-time)))
+       (prog1
+           (progn ,@body)
+         (tbnl:log-message* :TIME "~A: ~3$s"
+                            ,name
+                            (/ (- (get-internal-real-time) ,t1)
+                               internal-time-units-per-second))))))
+
 (with-open-file (in (merge-pathnames "template/instance.syt"
                                      (asdf:component-pathname
                                       (asdf:find-system :sytes))))
@@ -83,6 +93,12 @@
            (setf file (make-pathname :defaults file :type "syt")))))
       (or (tmpl:exec-template-request file (syte-root syte) (syte-context syte))
           (setf (tbnl:return-code*) tbnl:+http-not-found+)))))
+
+(defmethod syte-request-handler :around ((syte syte) request)
+  (report-time-spent (format nil "~A/~A"
+                             (syte-names syte)
+                             (tbnl:script-name request))
+    (call-next-method)))
 
 ;;; hunchentoot stuff
 
