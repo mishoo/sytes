@@ -13,6 +13,10 @@
 (defparameter *compiler-lock* (bt:make-lock "SYTES.COMPILER"))
 (defparameter *attributes* nil)
 
+(defun clear-cache ()
+  (bt:with-lock-held (*compiler-lock*)
+    (setf *compile-cache* (make-hash-table :test #'equal))))
+
 (def-primitive "*attributes*" (lambda () *attributes*))
 
 (defun full-filename (filename context)

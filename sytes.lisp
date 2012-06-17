@@ -4,13 +4,17 @@
 
 (export '(register-syte
           unregister-syte
-          syte-request-handler))
+          syte-request-handler
+          reset-caches))
 
 ;;; "sytes" goes here. Hacks and glory await!
 
 (defparameter *syte-names* (make-hash-table :test #'equal))
 (defparameter *current-syte* nil)
 (defparameter *syte-toplevel-context* (tmpl:make-context :name "SYTES"))
+
+(defun reset-caches ()
+  (tmpl:clear-cache))
 
 (defmacro report-time-spent (name &body body)
   (let ((t1 (gensym)))

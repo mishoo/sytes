@@ -13,6 +13,7 @@
            #:template-timestamp
            #:my-symbol-p
            #:my-symbol-name
+           #:clear-cache
 
            #:*current-template*))
 
