@@ -350,7 +350,11 @@
   (def-primitive "string-capitalize"
       (lambda (&rest args)
         (with-output-to-string (out)
-          (string-capitalize (strcat args out))))))
+          (string-capitalize (strcat args out)))))
+  (def-primitive "esc"
+      (lambda (&rest args)
+        (tbnl:escape-for-html (with-output-to-string (out)
+                                (strcat args out))))))
 
 (def-primitive "sort" #'stable-sort)
 
@@ -368,10 +372,6 @@
                                                       :collect (subseq str i j)))))
            (string replacement)
            (character (string replacement)))))))
-
-(def-primitive "esc"
-    (lambda (x)
-      (when x (tbnl:escape-for-html (format nil "~A" x)))))
 
 (def-primitive "&defglobal!"
     (lambda (name value)
