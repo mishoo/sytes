@@ -273,7 +273,7 @@
                             (skip *token-stop*)
                             (push `(,(tops "progn") ,tok nil) ret)))
                          (t
-                          (let ((raw (and (char= (peek) #\=) (next))))
+                          (let* ((esc (and (char= (peek) #\\) (next))))
                             (skip-whitespace)
                             (unless (char= (peek) *token-stop*)
                               (let ((tok (read-token)))
@@ -285,7 +285,7 @@
                                                          do (croak "Expecting '~C'" *token-stop*)
                                                        collect (read-token))))
                                     (setf tok (list* (tops "filter") tok filters))))
-                                (push (if raw tok (list (tops "esc") tok)) ret)))
+                                (push (if esc (list (tops "esc") tok) tok) ret)))
                             (skip-whitespace)
                             (skip *token-stop*)))))
                       ((char= ch *token-stop*)
