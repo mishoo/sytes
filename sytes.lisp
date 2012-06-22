@@ -59,7 +59,7 @@
 (defmethod initialize-instance :after ((syte syte) &key names root context &allow-other-keys)
   (unless context
     (setf root
-          (setf (syte-root syte) (truename root)))
+          (setf (syte-root syte) (fad:pathname-as-directory (truename root))))
     (setf context
           (setf (syte-context syte) (tmpl:make-context :name (car names) :root root :parent *syte-toplevel-context*)))))
 
@@ -70,6 +70,24 @@
 (defun unregister-syte (syte)
   (loop for name in (syte-names syte)
      do (remhash name *syte-names*)))
+
+(defun url-to-file (file &optional (syte *current-syte*))
+  (let* ((root (syte-root syte))
+         (pos (position-if-not (lambda (x) (char= x #\/)) file)))
+    (if pos
+        (setf file (subseq file pos))
+        (setf file ""))
+    (setf file (merge-pathnames file root))
+    (cond
+      ((fad:directory-exists-p file)
+       (setf file (fad:pathname-as-directory file)
+             file (merge-pathnames "index.syt" file)))
+      (t
+       (when (fad:directory-pathname-p file)
+         (setf file (fad:pathname-as-file file)))
+       (unless (probe-file file)
+         (setf file (make-pathname :defaults file :type "syt")))))
+    file))
 
 (defgeneric syte-request-handler (syte request)
   (:method ((syte (eql nil)) request)
@@ -159,6 +177,36 @@
                                      :parent (tmpl:template-context tmpl))))
         (funcall (tmpl:template-function tmpl) ctx)
         ctx)))
+
+(tmpl:def-primitive "absurl"
+    (lambda (relink)
+      (let* ((current tmpl:*current-template*)
+             (filename (tmpl:template-filename current))
+             (directory (make-pathname :directory (pathname-directory filename)))
+             (root (syte-root *current-syte*))
+             (relbase (list* :absolute
+                             (cdr (pathname-directory (enough-namestring filename root)))))
+             (absolute-url (merge-pathnames relink (make-pathname :directory relbase)))
+             (absolute-file (merge-pathnames relink directory)))
+        (namestring
+         (cond
+           ((fad:directory-exists-p absolute-file)
+            (fad:pathname-as-directory absolute-url))
+           ((and (fad:file-exists-p absolute-file)
+                 (awhen (pathname-type absolute-file)
+                   (string-equal it "syt")))
+            (make-pathname :directory (pathname-directory absolute-url)
+                           :name (pathname-name absolute-url)))
+           (t
+            absolute-url))))))
+
+(tmpl:def-primitive "sameurl"
+    (lambda (url1 &optional url2)
+      (let ((file1 (url-to-file url1))
+            (file2 (if url2
+                       (url-to-file url2)
+                       (tmpl:template-filename tmpl:*request-template*))))
+        (equal (truename file1) (truename file2)))))
 
 (tmpl:def-primitive "http/set-status"
     (lambda (status)

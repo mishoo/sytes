@@ -15,6 +15,7 @@
            #:my-symbol-name
            #:clear-cache
 
-           #:*current-template*))
+           #:*current-template*
+           #:*request-template*))
 
 (in-package #:sytes.template)

@@ -7,6 +7,7 @@
   (function))
 
 (defparameter *current-template* nil)
+(defparameter *request-template* nil)
 (defparameter *compile-cache* (make-hash-table :test #'equal))
 (defparameter *autohandler* "autohandler.syt")
 (defparameter *dhandler* "dhandler.syt")
@@ -63,21 +64,27 @@
     (let* ((tmpl (compile-file filename :parent-context parent-context))
            (ctx (make-context :name filename
                               :parent (template-context tmpl))))
-      ;; at this point the template is compiled, but not run
-      ;; if it replaces the *autohandler* variable, we should find it here.
-      (let ((ah (aif (lookup-var (tops "*autohandler*") ctx t)
-                     (cdr it)
-                     *autohandler*)))
-        (cond
-          ((setf ah (find-file-up ah rootdir (template-filename tmpl)))
-           ;; have autohandler
-           (let ((call-me (lambda (&rest args)
-                            (let ((*current-template* tmpl))
-                              (apply (template-function tmpl) ctx "call-next" base-comp args)))))
-             (exec-template-request ah rootdir parent-context :base-comp call-me)))
-          (t
-           (let ((*attributes* (make-hash-table :test #'equal)))
-             (funcall (template-function tmpl) ctx "call-next" base-comp))))))))
+      (flet ((doit ()
+               ;; at this point the template is compiled, but not run
+               ;; if it replaces the *autohandler* variable, we should find it here.
+               (let ((ah (aif (lookup-var (tops "*autohandler*") ctx t)
+                              (cdr it)
+                              *autohandler*)))
+                 (cond
+                   ((setf ah (find-file-up ah rootdir (template-filename tmpl)))
+                    ;; have autohandler
+                    (let ((call-me (lambda (&rest args)
+                                     (let ((*current-template* tmpl))
+                                       (apply (template-function tmpl) ctx "call-next" base-comp args)))))
+                      (exec-template-request ah rootdir parent-context :base-comp call-me)))
+                   (t
+                    (let ((*attributes* (make-hash-table :test #'equal))
+                          (*current-template* tmpl))
+                      (funcall (template-function tmpl) ctx "call-next" base-comp)))))))
+        (if base-comp
+            (doit)
+            (let ((*request-template* tmpl))
+              (doit)))))))
 
 (defun find-file-up (lookup root start)
   (when (probe-file start)
