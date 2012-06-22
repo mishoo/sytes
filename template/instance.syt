@@ -1,5 +1,5 @@
 { ; -*- lisp -*-
-(eval-now
+(eval-when-compile
 
  ;; autohandler stuff
  (defmacro @inherit (name)

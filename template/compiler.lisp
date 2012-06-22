@@ -7,7 +7,7 @@
 (defparameter +s-set+ (tops "&set!"))
 (defparameter +s-def+ (tops "&def!"))
 (defparameter +s-defmacro+ (tops "&defmacro!"))
-(defparameter +s-eval-now+ (tops "eval-now"))
+(defparameter +s-eval-now+ (tops "eval-when-compile"))
 (defparameter +s-catch+ (tops "catch"))
 (defparameter +s-throw+ (tops "throw"))
 

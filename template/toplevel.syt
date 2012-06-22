@@ -1,5 +1,5 @@
 { ; -*- lisp -*-
-(eval-now
+(eval-when-compile
 
  ((lambda (qq)
     (&set! qq (lambda (x)
@@ -17,7 +17,7 @@
     (&defmacro! quasiquote (thing) (qq thing))) nil)
 
  (&defmacro! defmacro (name args . body)
-             `(eval-now (&defmacro! ,name ,args ,@body)))
+             `(eval-when-compile (&defmacro! ,name ,args ,@body)))
 
  (defmacro when (condition . body)
    `(if ,condition (progn ,@body)))
