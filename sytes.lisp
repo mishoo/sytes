@@ -206,7 +206,11 @@
             (file2 (if url2
                        (url-to-file url2)
                        (tmpl:template-filename tmpl:*request-template*))))
-        (equal (truename file1) (truename file2)))))
+        (when (fad:file-exists-p file1)
+          (setf file1 (truename file1)))
+        (when (fad:file-exists-p file2)
+          (setf file2 (truename file2)))
+        (equal file1 file2))))
 
 (tmpl:def-primitive "http/set-status"
     (lambda (status)
@@ -232,16 +236,17 @@
 
 ;;; entry point for buildapp
 
-(defparameter *running* t)
-
-(defun main (argv)
-  (declare (ignore argv))
-  (sb-daemon:daemonize :output "/tmp/sytes.output"
-                       :error "/tmp/sytes.error"
-                       :exit-parent t
-                       :sigterm (lambda (sig)
-                                  (declare (ignore sig))
-                                  (setf *running* nil)))
-  (setf *running* t)
-  (start-server)
-  (loop while *running* do (sleep 1)))
+#+sbcl
+(progn
+  (defparameter *running* t)
+  (defun main (argv)
+    (declare (ignore argv))
+    (sb-daemon:daemonize :output "/tmp/sytes.output"
+                         :error "/tmp/sytes.error"
+                         :exit-parent t
+                         :sigterm (lambda (sig)
+                                    (declare (ignore sig))
+                                    (setf *running* nil)))
+    (setf *running* t)
+    (start-server)
+    (loop while *running* do (sleep 1))))

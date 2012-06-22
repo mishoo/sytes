@@ -14,14 +14,14 @@
                #:split-sequence
                #:cl-fad
                #:bordeaux-threads
-               #:sb-daemon)
+               #+sbcl #:sb-daemon)
   :components ((:file "package")
                (:module "template"
-                        :serial t
-                        :components ((:file "package")
-                                     (:file "context")
-                                     (:file "parser")
-                                     (:file "compiler")
-                                     (:file "storage")))
+                :serial t
+                :components ((:file "package")
+                             (:file "context")
+                             (:file "parser")
+                             (:file "compiler")
+                             (:file "storage")))
                (:file "sytes")))
 
