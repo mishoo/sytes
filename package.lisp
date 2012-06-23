@@ -9,5 +9,7 @@
            #:syte-names
            #:syte-root
            #:syte-context
-           #:def-syte-primitive))
+           #:def-syte-primitive
+           #:start-server
+           #:stop-server))
 
