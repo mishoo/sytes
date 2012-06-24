@@ -273,7 +273,8 @@
                             (skip *token-stop*)
                             (push `(,(tops "progn") ,tok nil) ret)))
                          (t
-                          (let* ((esc (and (char= (peek) #\\) (next))))
+                          (let* ((esc (or (and (char= (peek) #\\) (next))
+                                          (char= (peek) *token-start*))))
                             (skip-whitespace)
                             (unless (char= (peek) *token-stop*)
                               (let ((tok (read-token)))
