@@ -73,52 +73,45 @@
 
 (defun url-to-file (file &optional (syte *current-syte*))
   (let* ((root (syte-root syte))
-         (pos (position-if-not (lambda (x) (char= x #\/)) file)))
+         (pos (position-if-not (lambda (x) (char= x #\/)) file))
+         (redirect nil))
     (if pos
         (setf file (subseq file pos))
         (setf file ""))
     (setf file (merge-pathnames file root))
     (cond
       ((fad:directory-exists-p file)
-       (setf file (fad:pathname-as-directory file)
-             file (merge-pathnames "index.syt" file)))
+       (setf redirect (not (fad:directory-pathname-p file))
+             file (merge-pathnames "index.syt"
+                                   (fad:pathname-as-directory file))))
       (t
        (when (fad:directory-pathname-p file)
          (setf file (fad:pathname-as-file file)))
        (unless (probe-file file)
          (setf file (make-pathname :defaults file :type "syt")))))
-    file))
+    (values file redirect)))
+
+(defgeneric syte-locate-template (syte request)
+  (:method ((syte syte) request)
+    (let ((script (tbnl:script-name request)))
+      (url-to-file script syte))))
 
 (defgeneric syte-request-handler (syte request)
   (:method ((syte (eql nil)) request)
     (format nil "No syte defined for host ~A" (hostname request)))
   (:method ((syte syte) request)
     (maybe-exec-boot syte)
-    ;; process the requested file
-    (let* ((script (tbnl:script-name request))
-           (file script)
-           (root (syte-root syte))
-           (pos (position-if-not (lambda (x) (char= x #\/)) file)))
-      (if pos
-          (setf file (subseq file pos))
-          (setf file ""))
-      (setf file (merge-pathnames file root))
-      (cond
-        ((fad:directory-exists-p file)
-         (if (fad:directory-pathname-p file)
-             (setf file (merge-pathnames "index.syt" file))
-             (tbnl:redirect (format nil "~A/" script))))
-        (t
-         (when (fad:directory-pathname-p file)
-           (setf file (fad:pathname-as-file file)))
-         (unless (probe-file file)
-           (setf file (make-pathname :defaults file :type "syt")))))
-      (or (tmpl:exec-template-request file (syte-root syte) (syte-context syte))
+    (multiple-value-bind (file redirect)
+        (syte-locate-template syte request)
+      (when redirect
+        (tbnl:redirect (format nil "~A/" (tbnl:script-name request))))
+      (if (probe-file file)
+          (tmpl:exec-template-request file (syte-root syte) (syte-context syte))
           (setf (tbnl:return-code*) tbnl:+http-not-found+)))))
 
 (defmethod syte-request-handler :around ((syte syte) request)
-  (report-time-spent (format nil "~A/~A"
-                             (syte-names syte)
+  (report-time-spent (format nil "~A~A"
+                             (car (syte-names syte))
                              (tbnl:script-name request))
     (call-next-method)))
 
@@ -132,9 +125,9 @@
   (:default-initargs
    :error-template-directory nil
    :access-log-destination "/tmp/sytes.log"
-    :message-log-destination "/tmp/sytes.messages"
-    :port 7379
-    :request-class 'sytes-request))
+   :message-log-destination "/tmp/sytes.messages"
+   :port 7379
+   :request-class 'sytes-request))
 
 (defparameter *acceptor* nil)
 
