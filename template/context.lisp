@@ -11,9 +11,11 @@
 (defparameter *current-context* nil)
 
 (defstruct (context (:constructor
-                     make-context (&key (name "UNKNOWN")
+                        make-context (&key
                                         (symbols (make-hash-table :test #'equal))
                                         (parent *toplevel-context*)
+                                        (name (if parent (context-name parent)
+                                                  "UNKNOWN"))
                                         (root (and parent (context-root parent)))
                                         (env)
                                         (global))))
@@ -51,7 +53,9 @@
                 (setf (gethash name syms) (make-my-symbol :name name))))))))
 
 (defun tops (name)
-  (my-symbol-in-context name *toplevel-context*))
+  (if (my-symbol-p name)
+      name
+      (my-symbol-in-context name *toplevel-context*)))
 
 (defun lookup-var (sym &optional (context *current-context*) noerror)
   (or (assoc sym (context-env context))

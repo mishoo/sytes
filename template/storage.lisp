@@ -57,7 +57,7 @@
                   (template-function cached) func))))
       (values cached was-cached))))
 
-(defun exec-template-request (filename rootdir parent-context &key base-comp)
+(defun exec-template-request (filename rootdir parent-context &key base-comp variables)
   (unless (probe-file filename)
     (setf filename (find-file-up *dhandler* rootdir filename)))
   (when filename
@@ -71,16 +71,16 @@
                               (cdr it)
                               *autohandler*)))
                  (cond
-                   ((setf ah (find-file-up ah rootdir (template-filename tmpl)))
+                   ((and ah (setf ah (find-file-up ah rootdir (template-filename tmpl))))
                     ;; have autohandler
                     (let ((call-me (lambda (&rest args)
                                      (let ((*current-template* tmpl))
-                                       (apply (template-function tmpl) ctx "call-next" base-comp args)))))
-                      (exec-template-request ah rootdir parent-context :base-comp call-me)))
+                                       (apply (template-function tmpl) ctx "call-next" base-comp (append args variables))))))
+                      (exec-template-request ah rootdir parent-context :base-comp call-me :variables variables)))
                    (t
                     (let ((*attributes* (make-hash-table :test #'equal))
                           (*current-template* tmpl))
-                      (funcall (template-function tmpl) ctx "call-next" base-comp)))))))
+                      (apply (template-function tmpl) ctx "call-next" base-comp variables)))))))
         (if base-comp
             (doit)
             (let ((*request-template* tmpl))

@@ -5,7 +5,8 @@
 (export '(register-syte
           unregister-syte
           syte-request-handler
-          reset-caches))
+          reset-caches
+          def-url-handler))
 
 ;;; "sytes" goes here. Hacks and glory await!
 
@@ -38,10 +39,13 @@
    (root :accessor syte-root
          :initarg :root)
    (context :accessor syte-context
-            :initarg :context))
+            :initarg :context)
+   (url-handlers :accessor syte-url-handlers
+                 :initarg :url-handlers
+                 :initform nil))
   (:default-initargs
    :names (error "Syte names are missing")
-    :root (error "Syte root is missing")))
+   :root (error "Syte root is missing")))
 
 (defun maybe-exec-boot (syte &key
                                (boot ".boot.syt")
@@ -101,13 +105,44 @@
     (format nil "No syte defined for host ~A" (hostname request)))
   (:method ((syte syte) request)
     (maybe-exec-boot syte)
-    (multiple-value-bind (file redirect)
-        (syte-locate-template syte request)
-      (when redirect
-        (tbnl:redirect (format nil "~A/" (tbnl:script-name request))))
-      (if (probe-file file)
-          (tmpl:exec-template-request file (syte-root syte) (syte-context syte))
-          (setf (tbnl:return-code*) tbnl:+http-not-found+)))))
+    (let ((file)
+          (redirect)
+          (script (tbnl:script-name request))
+          (moarvars))
+      (loop for (regexp . handler) in (syte-url-handlers syte) do
+        (multiple-value-bind (match-start match-end reg-starts reg-ends)
+            (ppcre:scan regexp script)
+          (declare (ignore match-start match-end))
+          (when reg-starts
+            (let* ((registers (map 'list (lambda (start end)
+                                           (subseq script start end))
+                                   reg-starts reg-ends))
+                   (result (apply handler registers)))
+              (unless (eq result :continue)
+                (destructuring-bind (&key variables template redirect) result
+                  (when redirect
+                    (tbnl:redirect redirect))
+                  (if template
+                      (multiple-value-setq (file redirect)
+                        (url-to-file template syte)))
+                  (when variables
+                    (setf moarvars variables))
+                  (return)))))))
+      (unless file
+        (multiple-value-setq (file redirect)
+          (syte-locate-template syte request))
+        (when redirect
+          (tbnl:redirect (format nil "~A/" (tbnl:script-name request)))))
+      (tmpl:exec-template-request file (syte-root syte) (syte-context syte)
+                                  :variables moarvars))))
+
+(defmacro def-url-handler ((syte regexp &rest args) &body body)
+  (with-rebinds (syte regexp)
+    `(setf (syte-url-handlers ,syte)
+           (acons ,regexp (lambda (&optional ,@args)
+                            (declare (ignorable ,@args))
+                            ,@body)
+                  (syte-url-handlers ,syte)))))
 
 (defmethod syte-request-handler :around ((syte syte) request)
   (report-time-spent (format nil "~A~A"

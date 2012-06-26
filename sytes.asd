@@ -16,6 +16,7 @@
                #:bordeaux-threads
                #+sbcl #:sb-daemon)
   :components ((:file "package")
+               (:file "utils")
                (:module "template"
                 :serial t
                 :components ((:file "package")

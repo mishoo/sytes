@@ -14,6 +14,7 @@
            #:my-symbol-p
            #:my-symbol-name
            #:clear-cache
+           #:tops
 
            #:*current-template*
            #:*request-template*))
