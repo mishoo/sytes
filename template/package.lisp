@@ -11,12 +11,14 @@
            #:template-filename
            #:template-function
            #:template-timestamp
-           #:my-symbol-p
-           #:my-symbol-name
            #:clear-cache
            #:tops
+           #:make-keyval
 
            #:*current-template*
            #:*request-template*))
+
+(defpackage #:sytes.%runtime%
+  (:import-from :cl #:t #:nil))
 
 (in-package #:sytes.template)

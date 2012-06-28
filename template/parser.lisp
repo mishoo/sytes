@@ -5,7 +5,7 @@
 (defparameter *token-start* *default-token-start*)
 (defparameter *token-stop* *default-token-stop*)
 
-(defun parse (input &key (template-name "UNKNOWN-TEMPLATE") (context *current-context*))
+(defun parse (input &key (template-name "UNKNOWN-TEMPLATE"))
   (let ((line 1)
         (col 0)
         (tokline 0)
@@ -104,15 +104,17 @@
                    (cond
                      ((cdr path)
                       `(,(tops "&dot-lookup")
-                        ,(my-symbol-in-context (car path) context)
+                        ,(tops (car path))
                         ,@(mapcar (lambda (x)
                                     (list (tops "quote")
-                                          (my-symbol-in-context x context)))
+                                          (tops x)))
                                   (cdr path))))
                      ((char= (char sym 0) #\:)
                       (read-from-string sym))
+                     ((string-equal sym "nil") nil)
+                     ((string-equal sym "t") t)
                      (t
-                      (my-symbol-in-context sym context))))))))
+                      (tops sym))))))))
 
          (skip-comment ()
            (skip #\;)
@@ -166,6 +168,7 @@
               (list (tops "unquote") (read-token)))))
 
          (read-regexp ()
+           (croak "XXX: Figure out read-time regexps")
            (let ((str (read-escaped #\/ #\/ t))
                  (mods (string-downcase (read-while (lambda (ch)
                                                       (member ch '(#\m #\s #\i)))))))
@@ -183,7 +186,7 @@
                 (read-from-string (format nil "#\\~A~A" first name))))
              (#\/ (read-regexp))
              (#\( (list* (tops "vector") (read-list #\( #\))))
-             (#\: (next) (make-my-symbol :name (read-symbol)))
+             (#\: (next) (make-symbol (read-symbol)))
              (otherwise (croak "Unsupported sharp syntax #~A" (peek)))))
 
          (read-token ()
@@ -200,6 +203,7 @@
                ((char= ch #\;) (skip-comment) (read-token))
                ((char= ch #\") (read-string))
                ((char= ch #\() (read-list #\( #\)))
+               ((char= ch #\[) (read-list #\[ #\]))
                ((char= ch #\') (read-quote))
                ((char= ch #\`) (read-qq))
                ((char= ch #\,) (read-comma))

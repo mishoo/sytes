@@ -254,8 +254,8 @@
 
 (tmpl:def-primitive "http/set-status"
     (lambda (status)
-      (when (tmpl:my-symbol-p status)
-        (setf status (tmpl:my-symbol-name status)))
+      (when (symbolp status)
+        (setf status (symbol-name status)))
       (when (stringp status)
         (let* ((name (format nil "+HTTP-~A+" (string-upcase status)))
                (sym (find-symbol name :hunchentoot)))

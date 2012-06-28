@@ -43,7 +43,7 @@
           (let* ((ctx (or sub-context
                           (make-context :name filename
                                         :parent parent-context
-                                        :global (default-global-context filename))))
+                                        :global (tmpl:make-keyval :data (default-global-context filename)))))
                  (*current-context* ctx)
                  (tmpl (make-template :filename (truename filename)
                                       :context ctx))
@@ -52,7 +52,7 @@
                              (*current-template* tmpl))
                          (setf cached
                                (setf (gethash filename *compile-cache*) tmpl))
-                         (compile (parse in :template-name filename :context ctx)))))
+                         (compile (parse in :template-name filename)))))
             (setf (template-timestamp cached) timestamp
                   (template-function cached) func))))
       (values cached was-cached))))
@@ -75,12 +75,12 @@
                     ;; have autohandler
                     (let ((call-me (lambda (&rest args)
                                      (let ((*current-template* tmpl))
-                                       (apply (template-function tmpl) ctx "call-next" base-comp (append args variables))))))
+                                       (apply (template-function tmpl) ctx (tops "call-next") base-comp (append args variables))))))
                       (exec-template-request ah rootdir parent-context :base-comp call-me :variables variables)))
                    (t
                     (let ((*attributes* (make-hash-table :test #'equal))
                           (*current-template* tmpl))
-                      (apply (template-function tmpl) ctx "call-next" base-comp variables)))))))
+                      (apply (template-function tmpl) ctx (tops "call-next") base-comp variables)))))))
         (if base-comp
             (doit)
             (let ((*request-template* tmpl))

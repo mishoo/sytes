@@ -1,30 +1,59 @@
 (in-package #:sytes.template)
 
-(defstruct (my-symbol (:print-object print-my-symbol))
-  (name nil :type string)
-  (macro nil :type boolean))
+(defstruct (keyval)
+  (data))
 
-(defun print-my-symbol (sym stream)
-  (write-string (my-symbol-name sym) stream))
+(defun keyval-find (kv key &optional (error t))
+  (let ((cell (assoc key (keyval-data kv))))
+    (when (and error (not cell))
+      (error "Undefined key: ~A" key))
+    cell))
+
+(defun keyval-set (kv key val)
+  (setf (cdr (keyval-find kv key)) val))
+
+(defun keyval-def (kv key &optional val)
+  (setf (keyval-data kv)
+        (acons key val (keyval-data kv)))
+  val)
+
+(defun keyval-push (kv defs)
+  (setf (keyval-data kv)
+        (nconc defs (keyval-data kv))))
+
+(defun keyval-defset (kv key val)
+  (aif (keyval-find kv key nil)
+       (setf (cdr it) val)
+       (keyval-def kv key val)))
 
 (defparameter *toplevel-context* nil)
 (defparameter *current-context* nil)
 
 (defstruct (context (:constructor
                         make-context (&key
-                                        (symbols (make-hash-table :test #'equal))
                                         (parent *toplevel-context*)
                                         (name (if parent (context-name parent)
                                                   "UNKNOWN"))
                                         (root (and parent (context-root parent)))
-                                        (env)
-                                        (global))))
+                                        (env (make-keyval))
+                                        (global (make-keyval))
+                                        (macros))))
   (name)
-  (symbols)
   (parent)
   (root)
   (env)
-  (global))
+  (global)
+  (macros))
+
+(defun is-macro (symbol &optional (context *current-context*))
+  (or (awhen (assoc symbol (context-macros context))
+        (cdr it))
+      (awhen (context-parent context)
+        (is-macro symbol it))))
+
+(defun add-macro (symbol func &optional (context *current-context*))
+  (setf (context-macros context)
+        (acons symbol func (context-macros context))))
 
 (defun context-root-up (context)
   (loop while (and context (null (context-root context)))
@@ -34,77 +63,43 @@
 (setf *toplevel-context* (make-context :name "TOPLEVEL"))
 (setf *current-context* *toplevel-context*)
 
-(defun my-symbol-in-context (name context &optional nointern)
-  (when (my-symbol-p name) (return-from my-symbol-in-context name))
-  ;; actually intern them all in the toplevel context; this becomes
-  ;; too messy.
-  (setf context *toplevel-context*)
-  (when (zerop (length name))
-    (error "Missing symbol name"))
-  (let ((syms (context-symbols context)))
-    (cond
-      ((string-equal name "t") t)
-      ((string-equal name "nil") nil)
-      (t
-       (or (gethash name syms)
-           (awhen (context-parent context)
-             (my-symbol-in-context name it t))
-           (and (not nointern)
-                (setf (gethash name syms) (make-my-symbol :name name))))))))
-
 (defun tops (name)
-  (if (my-symbol-p name)
+  (if (symbolp name)
       name
-      (my-symbol-in-context name *toplevel-context*)))
+      (intern name :sytes.%runtime%)))
 
 (defun lookup-var (sym &optional (context *current-context*) noerror)
-  (or (assoc sym (context-env context))
-      (assoc sym (context-global context))
-      (awhen (context-parent context)
-        (lookup-var sym it noerror))
-      (if noerror
-          nil
-          (error "Undefined variable ~A in context ~A"
-                 sym (context-name context)))))
+  (block nil
+    (awhen (keyval-find (context-env context) sym nil)
+      (return it))
+    (awhen (keyval-find (context-global context) sym nil)
+      (return it))
+    (awhen (context-parent context)
+      (return (lookup-var sym it noerror)))
+    (unless noerror
+      (error "Undefined variable ~A in context ~A"
+             sym (context-name context)))))
 
 (defun defvar-context (sym value &optional (context *current-context*))
-  (setf (context-env context)
-        (acons sym value (context-env context))))
+  (keyval-def (context-env context) sym value))
 
 (defun defglobal-context (sym value &optional (context *current-context*))
-  (let ((cell (assoc sym (context-global context))))
-    (if cell
-        (setf (cdr cell) value)
-        (setf (context-global context)
-              (acons sym value (context-global context))))))
+  (keyval-defset (context-global context) sym value))
 
 (defun setvar-context (sym value &optional (context *current-context*))
   (let ((cell (lookup-var sym context)))
     (setf (cdr cell) value)))
 
 (defun defsetvar-context (sym value &optional (context *current-context*))
-  (let ((cell (or (assoc sym (context-env context))
-                  (assoc sym (context-global context)))))
+  (let ((cell (or (keyval-find (context-env context) sym nil)
+                  (keyval-find (context-global context) sym nil))))
     (if cell
         (setf (cdr cell) value)
         (defvar-context sym value context))))
 
-(defmacro with-extended-context ((env names values &optional (context '*current-context*)) &body body)
-  (let ((save-env (gensym))
-        (ctx (gensym)))
-    `(let* ((,ctx ,context)
-            (,save-env (context-env ,ctx)))
-       (setf (context-env ,ctx) ,env)
-       (loop with name = ,names
-          with val = ,values
-          while name
-          do (cond
-               ((consp name)
-                (defvar-context (car name) (car val) ,ctx)
-                (setf val (cdr val)
-                      name (cdr name)))
-               (t
-                (defvar-context name val ,ctx)
-                (return))))
-       (unwind-protect (progn ,@body)
-         (setf (context-env ,ctx) ,save-env)))))
+(defun extend-context (definitions &optional (context *current-context*))
+  (let* ((ctx (copy-context context))
+         (env (copy-keyval (context-env ctx))))
+    (setf (context-env ctx) env)
+    (keyval-push env definitions)
+    ctx))

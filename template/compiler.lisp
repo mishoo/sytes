@@ -7,87 +7,112 @@
 (defparameter +s-set+ (tops "&set!"))
 (defparameter +s-def+ (tops "&def!"))
 (defparameter +s-defmacro+ (tops "&defmacro!"))
+(defparameter +s-defglobal+ (tops "&defglobal!"))
 (defparameter +s-eval-now+ (tops "eval-when-compile"))
 (defparameter +s-catch+ (tops "catch"))
 (defparameter +s-throw+ (tops "throw"))
 
 (defun comp-constant (x)
-  (lambda () x))
+  (lambda (@ctx)
+    (declare (ignore @ctx))
+    x))
 
 (defun comp-sequence (list)
-  (if (cdr list)
-      (let ((list (mapcar #'comp-exp list)))
-        (lambda ()
-          (loop for exp in list
-                for value = (funcall exp)
-                finally (return value))))
-      (comp-exp (car list))))
+  (let ((list (mapcar #'comp-exp list)))
+    (lambda (@ctx)
+      (labels ((rec (list)
+                 (when list
+                   (if (cdr list)
+                       (progn
+                         (funcall (car list) @ctx)
+                         (rec (cdr list)))
+                       (funcall (car list) @ctx)))))
+        (rec list)))))
+
+(defun bindings (args values &optional ret)
+  (if args
+      (if (consp args)
+          (bindings (cdr args) (cdr values)
+                    (cons (cons (car args) (car values)) ret))
+          (cons (cons args values) ret))
+      ret))
 
 (defun comp-lambda (args body)
   (let ((body (comp-sequence body)))
-    (lambda ()
-      (let ((env (context-env *current-context*)))
-        (lambda (&rest values)
-          (with-extended-context (env args values)
-            (funcall body)))))))
+    (lambda (@ctx)
+      (lambda (&rest values)
+        (funcall body
+                 (extend-context (bindings args values)
+                                 @ctx))))))
 
 (defun comp-set (name value)
   (let ((value (comp-exp value)))
-    (lambda ()
-      (setvar-context name (funcall value)))))
+    (lambda (@ctx)
+      (setvar-context name (funcall value @ctx) @ctx))))
 
 (defun comp-def (name value)
   (let ((value (comp-exp value)))
-    (lambda ()
-      (defsetvar-context name nil)
-      (setvar-context name (funcall value)))))
+    (lambda (@ctx)
+      (defsetvar-context name nil @ctx)
+      (setvar-context name (funcall value @ctx) @ctx))))
 
 (defun comp-if (predicate then else)
   (let ((predicate (comp-exp predicate))
         (then (comp-exp then))
         (else (comp-exp else)))
-    (lambda ()
-      (if (funcall predicate)
-          (funcall then)
-          (funcall else)))))
+    (lambda (@ctx)
+      (if (funcall predicate @ctx)
+          (funcall then @ctx)
+          (funcall else @ctx)))))
 
 (defun comp-funcall (name args)
   (let ((name (comp-exp name))
         (args (mapcar #'comp-exp args)))
-    (lambda ()
-      (apply (funcall name)
-             (mapcar #'funcall args)))))
+    (lambda (@ctx)
+      (apply (funcall name @ctx)
+             (mapcar (lambda (arg)
+                       (funcall arg @ctx)) args)))))
 
 (defun comp-ref (name)
-  (lambda ()
-    (cdr (lookup-var name))))
+  (lambda (@ctx)
+    (cdr (lookup-var name @ctx))))
 
 (defun comp-defmacro (name args body)
   (let ((func (comp-lambda args body)))
-    (lambda ()
-      (defglobal-context name (funcall func))
-      (setf (my-symbol-macro name) t)
+    (lambda (@ctx)
+      (add-macro name (funcall func @ctx) *current-context*)
       name)))
+
+(defun comp-defglobal (name value)
+  (let ((name (comp-exp name))
+        (value (comp-exp value)))
+    (lambda (@ctx)
+      (defglobal-context
+          (funcall name @ctx)
+          (funcall value @ctx)
+        @ctx))))
 
 (defun comp-eval-now (exprs)
   (loop for x in exprs
         for f = (comp-exp x)
-        do (funcall f))
-  (lambda () nil))
+        do (funcall f *current-context*))
+  (lambda (@ctx)
+    (declare (ignore @ctx))
+    nil))
 
 (defun comp-catch (tag body)
   (let ((tag (comp-exp tag))
         (body (comp-sequence body)))
-    (lambda ()
-      (catch (funcall tag)
-        (funcall body)))))
+    (lambda (@ctx)
+      (catch (funcall tag @ctx)
+        (funcall body @ctx)))))
 
 (defun comp-throw (tag value)
   (let ((tag (comp-exp tag))
         (value (comp-exp value)))
-    (lambda ()
-      (throw (funcall tag)
-        (funcall value)))))
+    (lambda (@ctx)
+      (throw (funcall tag @ctx)
+        (funcall value @ctx)))))
 
 (defun comp-exp (x)
   (cond
@@ -101,7 +126,7 @@
     ((listp x)
      (let ((x (car x))
            (args (cdr x)))
-       (if (my-symbol-p x)
+       (if (symbolp x)
            (cond
              ((eq x +s-quote+) (comp-constant (car args)))
              ((eq x +s-progn+) (comp-sequence args))
@@ -110,16 +135,17 @@
              ((eq x +s-def+) (comp-def (car args) (cadr args)))
              ((eq x +s-if+) (comp-if (car args) (cadr args) (caddr args)))
              ((eq x +s-defmacro+) (comp-defmacro (car args) (cadr args) (cddr args)))
+             ((eq x +s-defglobal+) (comp-defglobal (car args) (cadr args)))
              ((eq x +s-eval-now+) (comp-eval-now args))
              ((eq x +s-catch+) (comp-catch (car args) (cdr args)))
              ((eq x +s-throw+) (comp-throw (car args) (cadr args)))
-             ((my-symbol-macro x)
-              (let* ((code (apply (cdr (lookup-var x)) args)))
-                (comp-exp code)))
              (t
-              (comp-funcall x args)))
+              (aif (is-macro x *current-context*)
+                   (let* ((code (apply it args)))
+                     (comp-exp code))
+                   (comp-funcall x args))))
            (comp-funcall x args))))
-    ((my-symbol-p x)
+    ((symbolp x)
      (comp-ref x))
     (t (error "Unsupported syntax: ~A" x))))
 
@@ -127,15 +153,10 @@
   (let* ((*current-context* context)
          (exp (comp-exp exp)))
     (lambda (ctx &rest defs)
-      (let ((*current-context* ctx)
-            (env (context-env ctx)))
-        (unwind-protect
-             (progn
-               (loop for (name val) on defs by #'cddr do
-                 (defvar-context (my-symbol-in-context name ctx)
-                        val ctx))
-               (funcall exp))
-          (setf (context-env ctx) env))))))
+      (let ((*current-context* ctx))
+        (funcall exp (extend-context
+                      (loop for (name val) on defs by #'cddr collect (cons name val))
+                      ctx))))))
 
 (defgeneric das-eq (x y)
   (:method ((x string) (y string))
@@ -227,7 +248,10 @@
 (def-primitive "list?" #'listp)
 (def-primitive "symbol?"
     (lambda (x)
-      (or (null x) (eq x t) (my-symbol-p x))))
+      (or (null x) (eq x t)
+          (and (symbolp x)
+               (eq (symbol-package x)
+                   (find-package :sytes.%runtime%))))))
 
 (def-primitive "make-hash"
     (lambda (&rest props)
@@ -242,7 +266,7 @@
              ((null x) "nil")
              (t (etypecase x
                   (string x)
-                  (my-symbol (my-symbol-name x)))))))
+                  (symbol (symbol-name x)))))))
 
   (def-primitive "get-hash"
       (lambda (hash key)
@@ -296,15 +320,15 @@
 (let ((i 0))
   (def-primitive "gensym"
       (lambda (&optional (name "S"))
-        (make-my-symbol :name (format nil "~A~D" name (incf i))))))
+        (gensym (format nil "~A~D" name (incf i))))))
 
 (def-primitive "macroexpand-1"
     (lambda (exp)
-      (if (and (listp exp)
-               (my-symbol-p (car exp))
-               (my-symbol-macro (car exp)))
-          (apply (cdr (lookup-var (car exp))) (cdr exp))
-          exp)))
+      (aif (and (listp exp)
+                (symbolp (car exp))
+                (is-macro (car exp)))
+           (apply it (cdr exp))
+           exp)))
 
 (def-primitive "capture-output"
     (lambda (func &rest args)
@@ -368,15 +392,12 @@
          (declare (ignorable str start end match-start match-end reg-starts reg-ends))
          (etypecase replacement
            (function (let ((match (subseq str match-start match-end)))
-                       (apply replacement match (loop :for i :across reg-starts
-                                                      :for j :across reg-ends
-                                                      :collect (subseq str i j)))))
+                       (apply replacement match
+                              (map 'list (lambda (i j)
+                                           (subseq str i j))
+                                   reg-starts reg-ends))))
            (string replacement)
            (character (string replacement)))))))
-
-(def-primitive "&defglobal!"
-    (lambda (name value)
-      (defglobal-context name value)))
 
 (with-open-file (in (merge-pathnames "template/toplevel.syt"
                                      (asdf:component-pathname
