@@ -175,6 +175,7 @@
 (def-primitive "nthcdr" #'nthcdr)
 (def-primitive "cons" #'cons)
 (def-primitive "eq" #'das-eq)
+(def-primitive "zerop" #'zerop)
 (def-primitive "mapcar" #'mapcar)
 (def-primitive "mapc" #'mapc)
 (def-primitive "reverse" #'reverse)

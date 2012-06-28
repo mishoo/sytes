@@ -119,9 +119,21 @@
                                    reg-starts reg-ends))
                    (result (apply handler registers)))
               (unless (eq result :continue)
-                (destructuring-bind (&key variables template redirect) result
+                (destructuring-bind (&key
+                                       variables template redirect
+                                       content static-file content-type
+                                       status) result
                   (when redirect
                     (tbnl:redirect redirect))
+                  (when static-file
+                    (return-from syte-request-handler
+                      (tbnl:handle-static-file static-file content-type)))
+                  (when content-type
+                    (setf (tbnl:content-type*) content-type))
+                  (when status
+                    (setf (tbnl:return-code*) status))
+                  (when content
+                    (return-from syte-request-handler content))
                   (if template
                       (multiple-value-setq (file redirect)
                         (url-to-file template syte)))
