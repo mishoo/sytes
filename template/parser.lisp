@@ -168,7 +168,6 @@
               (list (tops "unquote") (read-token)))))
 
          (read-regexp ()
-           (croak "XXX: Figure out read-time regexps")
            (let ((str (read-escaped #\/ #\/ t))
                  (mods (string-downcase (read-while (lambda (ch)
                                                       (member ch '(#\m #\s #\i)))))))
