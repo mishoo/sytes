@@ -38,6 +38,7 @@
           (cached (gethash filename *compile-cache*))
           (was-cached t))
       (unless (and cached (<= timestamp (template-timestamp cached)))
+        (tbnl:log-message* 'TMPL "Compiling ~A" filename)
         (setf was-cached nil)
         (with-open-file (in filename)
           (let* ((ctx (or sub-context
@@ -62,8 +63,7 @@
     (setf filename (find-file-up *dhandler* rootdir filename)))
   (when filename
     (let* ((tmpl (compile-file filename :parent-context parent-context))
-           (ctx (make-context :name filename
-                              :parent (template-context tmpl))))
+           (ctx (copy-context (template-context tmpl))))
       (flet ((doit ()
                ;; at this point the template is compiled, but not run
                ;; if it replaces the *autohandler* variable, we should find it here.

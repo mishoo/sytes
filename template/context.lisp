@@ -68,14 +68,15 @@
       name
       (intern name :sytes.%runtime%)))
 
-(defun lookup-var (sym &optional (context *current-context*) noerror)
+(defun lookup-var (sym &optional (context *current-context*) noerror noparent)
   (block nil
     (awhen (keyval-find (context-env context) sym nil)
       (return it))
     (awhen (keyval-find (context-global context) sym nil)
       (return it))
-    (awhen (context-parent context)
-      (return (lookup-var sym it noerror)))
+    (unless noparent
+      (awhen (context-parent context)
+        (return (lookup-var sym it noerror))))
     (unless noerror
       (error "Undefined variable ~A in context ~A"
              sym (context-name context)))))
@@ -87,7 +88,7 @@
   (keyval-defset (context-global context) sym value))
 
 (defun setvar-context (sym value &optional (context *current-context*))
-  (let ((cell (lookup-var sym context)))
+  (let ((cell (lookup-var sym context nil t)))
     (setf (cdr cell) value)))
 
 (defun defsetvar-context (sym value &optional (context *current-context*))
