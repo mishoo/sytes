@@ -145,8 +145,9 @@
           (syte-locate-template syte request))
         (when redirect
           (tbnl:redirect (format nil "~A/" (tbnl:script-name request)))))
-      (tmpl:exec-template-request file (syte-root syte) (syte-context syte)
-                                  :variables moarvars))))
+      (let ((*package* (find-package :sytes.%runtime%)))
+        (tmpl:exec-template-request file (syte-root syte) (syte-context syte)
+                                    :variables moarvars)))))
 
 (defmacro def-url-handler ((syte regexp &rest args) &body body)
   (with-rebinds (syte regexp)

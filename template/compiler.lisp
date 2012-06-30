@@ -11,6 +11,7 @@
 (defparameter +s-eval-now+ (tops "eval-when-compile"))
 (defparameter +s-catch+ (tops "catch"))
 (defparameter +s-throw+ (tops "throw"))
+(defparameter +s-compile+ (tops "compile"))
 
 (defun comp-constant (x)
   (lambda (@ctx)
@@ -114,6 +115,19 @@
       (throw (funcall tag @ctx)
         (funcall value @ctx)))))
 
+(defun comp-compile (expr use-inner-context)
+  (let ((expr (comp-exp expr)))
+    (lambda (@ctx)
+      (let ((expr (funcall expr @ctx)))
+        (assert (and (listp expr)
+                     (eq (car expr) +s-lambda+))
+                nil
+                "COMPILE only takes a LAMBDA expression")
+        (funcall (comp-exp expr)
+                 (if use-inner-context
+                     @ctx
+                     *current-context*))))))
+
 (defun comp-exp (x)
   (cond
     ((or (numberp x)
@@ -139,6 +153,7 @@
              ((eq x +s-eval-now+) (comp-eval-now args))
              ((eq x +s-catch+) (comp-catch (car args) (cdr args)))
              ((eq x +s-throw+) (comp-throw (car args) (cadr args)))
+             ((eq x +s-compile+) (comp-compile (car args) (cadr args)))
              (t
               (aif (is-macro x *current-context*)
                    (let* ((code (apply it args)))
@@ -398,6 +413,11 @@
                                    reg-starts reg-ends))))
            (string replacement)
            (character (string replacement)))))))
+
+(def-primitive "parse-syte"
+    (lambda (str &optional (name "UNKNOWN-TEMPLATE"))
+      (with-input-from-string (in str)
+        (parse in :template-name name))))
 
 (with-open-file (in (merge-pathnames "template/toplevel.syt"
                                      (asdf:component-pathname
