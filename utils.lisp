@@ -9,3 +9,9 @@
           ,(let (,@(mapcar (lambda (n g) `(,n ,g)) names gensyms))
              ,@body)))))
 
+(defun read-whole-file-utf8 (path)
+  (with-open-file (s path :element-type 'unsigned-byte)
+    (let* ((len (file-length s))
+           (data (make-array len :element-type 'unsigned-byte)))
+      (read-sequence data s)
+      (trivial-utf-8:utf-8-bytes-to-string data))))

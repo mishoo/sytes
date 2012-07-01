@@ -170,7 +170,7 @@
     (lambda (ctx &rest defs)
       (let ((*current-context* ctx))
         (funcall exp (extend-context
-                      (loop for (name val) on defs by #'cddr collect (cons name val))
+                      (loop for (name val) on defs by #'cddr collect (cons (tops name) val))
                       ctx))))))
 
 (defgeneric das-eq (x y)

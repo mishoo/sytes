@@ -208,38 +208,57 @@
 
 ;;; some more primitives
 
-(tmpl:def-primitive "require"
-    (lambda (name)
-      (let* ((current tmpl:*current-template*)
-             (filename (tmpl:template-filename current))
-             (tmpl (tmpl:compile-file (merge-pathnames name filename)
-                                      :parent-context (syte-context *current-syte*)))
-             (ctx (tmpl:make-context :name (tmpl:template-filename tmpl)
-                                     :parent (tmpl:template-context tmpl))))
-        (funcall (tmpl:template-function tmpl) ctx)
-        ctx)))
+(labels
+
+    ((getpath (name &optional (current tmpl:*current-template*))
+       (let* ((path (pathname name))
+              (dir (pathname-directory path)))
+         (if (eq (car dir) :absolute)
+             (let ((path (make-pathname :defaults path
+                                        :directory (list* :relative (cdr dir)))))
+               (merge-pathnames path (syte-root *current-syte*)))
+             (merge-pathnames path (tmpl:template-filename current))))))
+
+  (tmpl:def-primitive "require"
+      (lambda (name)
+        (let* ((tmpl (tmpl:compile-file (getpath name)
+                                        :parent-context (syte-context *current-syte*)))
+               (ctx (tmpl:make-context :name (tmpl:template-filename tmpl)
+                                       :parent (tmpl:template-context tmpl))))
+          (funcall (tmpl:template-function tmpl) ctx)
+          ctx)))
+
+  (tmpl:def-primitive "include"
+      (lambda (name)
+        (read-whole-file-utf8 (getpath name)))))
 
 (tmpl:def-primitive "absurl"
     (lambda (relink)
-      (let* ((current tmpl:*current-template*)
-             (filename (tmpl:template-filename current))
-             (directory (make-pathname :directory (pathname-directory filename)))
-             (root (syte-root *current-syte*))
-             (relbase (list* :absolute
-                             (cdr (pathname-directory (enough-namestring filename root)))))
-             (absolute-url (merge-pathnames relink (make-pathname :directory relbase)))
-             (absolute-file (merge-pathnames relink directory)))
-        (namestring
-         (cond
-           ((fad:directory-exists-p absolute-file)
-            (fad:pathname-as-directory absolute-url))
-           ((and (fad:file-exists-p absolute-file)
-                 (awhen (pathname-type absolute-file)
-                   (string-equal it "syt")))
-            (make-pathname :directory (pathname-directory absolute-url)
-                           :name (pathname-name absolute-url)))
-           (t
-            absolute-url))))))
+      (destructuring-bind (relink &optional hash)
+          (ppcre:split "#" relink :limit 2)
+        (with-output-to-string (out)
+          (let* ((current tmpl:*current-template*)
+                 (filename (tmpl:template-filename current))
+                 (directory (make-pathname :directory (pathname-directory filename)))
+                 (root (syte-root *current-syte*))
+                 (relbase (list* :absolute
+                                 (cdr (pathname-directory (enough-namestring filename root)))))
+                 (absolute-url (merge-pathnames relink (make-pathname :directory relbase)))
+                 (absolute-file (merge-pathnames relink directory)))
+            (write-string (namestring
+                           (cond
+                             ((fad:directory-exists-p absolute-file)
+                              (fad:pathname-as-directory absolute-url))
+                             ((and (fad:file-exists-p absolute-file)
+                                   (awhen (pathname-type absolute-file)
+                                     (string-equal it "syt")))
+                              (make-pathname :directory (pathname-directory absolute-url)
+                                             :name (pathname-name absolute-url)))
+                             (t
+                              absolute-url))) out)
+            (when hash
+              (write-char #\# out)
+              (write-string hash out)))))))
 
 (tmpl:def-primitive "sameurl"
     (lambda (url1 &optional url2)

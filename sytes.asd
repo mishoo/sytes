@@ -14,6 +14,7 @@
                #:split-sequence
                #:cl-fad
                #:bordeaux-threads
+               #:trivial-utf-8
                #+sbcl #:sb-daemon)
   :components ((:file "package")
                (:file "utils")
