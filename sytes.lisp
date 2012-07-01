@@ -6,7 +6,8 @@
           unregister-syte
           syte-request-handler
           reset-caches
-          def-url-handler))
+          def-url-handler
+          url-to-file))
 
 ;;; "sytes" goes here. Hacks and glory await!
 
