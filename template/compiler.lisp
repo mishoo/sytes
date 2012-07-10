@@ -255,6 +255,7 @@
 (def-primitive "cddadr" #'cddadr)
 (def-primitive "cdddar" #'cdddar)
 (def-primitive "cddddr" #'cddddr)
+(def-primitive "elt" #'elt)
 
 (def-primitive "function?" #'functionp)
 (def-primitive "number?" #'numberp)

@@ -231,7 +231,9 @@
 
   (tmpl:def-primitive "include"
       (lambda (name)
-        (read-whole-file-utf8 (getpath name)))))
+        (let ((filename (getpath name)))
+          (when (fad:file-exists-p filename)
+            (read-whole-file-utf8 filename))))))
 
 (tmpl:def-primitive "absurl"
     (lambda (relink)
@@ -253,8 +255,9 @@
                              ((and (fad:file-exists-p absolute-file)
                                    (awhen (pathname-type absolute-file)
                                      (string-equal it "syt")))
-                              (make-pathname :directory (pathname-directory absolute-url)
-                                             :name (pathname-name absolute-url)))
+                              (let ((name (pathname-name absolute-url)))
+                                (make-pathname :directory (pathname-directory absolute-url)
+                                               :name (unless (string= name "index") name))))
                              (t
                               absolute-url))) out)
             (when hash
@@ -267,11 +270,18 @@
             (file2 (if url2
                        (url-to-file url2)
                        (tmpl:template-filename tmpl:*request-template*))))
-        (when (fad:file-exists-p file1)
-          (setf file1 (truename file1)))
-        (when (fad:file-exists-p file2)
-          (setf file2 (truename file2)))
-        (equal file1 file2))))
+        (macrolet
+            ((canonic (name)
+               `(progn
+                  (when (fad:file-exists-p ,name)
+                    (setf ,name (truename ,name)))
+                  (when (pathnamep ,name)
+                    (setf ,name (namestring ,name))))))
+          (canonic file1)
+          (canonic file2)
+          (let ((dir (namestring (make-pathname :directory (pathname-directory file1)))))
+            (cons (equal file1 file2)
+                  (starts-with file2 dir)))))))
 
 (tmpl:def-primitive "http/set-status"
     (lambda (status)
