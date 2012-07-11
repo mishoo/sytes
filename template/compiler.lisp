@@ -255,6 +255,7 @@
 (def-primitive "cddadr" #'cddadr)
 (def-primitive "cdddar" #'cdddar)
 (def-primitive "cddddr" #'cddddr)
+(def-primitive "length" #'length)
 (def-primitive "elt" #'elt)
 
 (def-primitive "function?" #'functionp)
@@ -268,6 +269,8 @@
           (and (symbolp x)
                (eq (symbol-package x)
                    (find-package :sytes.%runtime%))))))
+
+(def-primitive "intern" #'tops)
 
 (def-primitive "make-hash"
     (lambda (&rest props)
@@ -382,16 +385,16 @@
   (def-primitive "string-right-trim" #'string-right-trim)
   (def-primitive "string-upcase"
       (lambda (&rest args)
-        (with-output-to-string (out)
-          (string-upcase (strcat args out)))))
+        (string-upcase (with-output-to-string (out)
+                         (strcat args out)))))
   (def-primitive "string-downcase"
       (lambda (&rest args)
-        (with-output-to-string (out)
-          (string-downcase (strcat args out)))))
+        (string-downcase (with-output-to-string (out)
+                           (strcat args out)))))
   (def-primitive "string-capitalize"
       (lambda (&rest args)
-        (with-output-to-string (out)
-          (string-capitalize (strcat args out)))))
+        (string-capitalize (with-output-to-string (out)
+                             (strcat args out)))))
   (def-primitive "esc"
       (lambda (&rest args)
         (tbnl:escape-for-html (with-output-to-string (out)
