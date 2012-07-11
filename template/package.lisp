@@ -14,6 +14,7 @@
            #:clear-cache
            #:tops
            #:make-keyval
+           #:defglobal-context
 
            #:*current-template*
            #:*request-template*))

@@ -66,7 +66,8 @@
     (setf root
           (setf (syte-root syte) (fad:pathname-as-directory (truename root))))
     (setf context
-          (setf (syte-context syte) (tmpl:make-context :name (car names) :root root :parent *syte-toplevel-context*)))))
+          (setf (syte-context syte) (tmpl:make-context :name (car names) :root root :parent *syte-toplevel-context*))))
+  (tmpl:defglobal-context (tmpl:tops "%filters%") (make-hash-table :test #'equal) context))
 
 (defun register-syte (syte)
   (loop for name in (syte-names syte)

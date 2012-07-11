@@ -25,12 +25,37 @@
  (defmacro unless (pred . body)
    `(if ,pred nil (progn ,@body)))
 
+ (defmacro define (x . val)
+   (if (cons? x)
+       `(&def! ,(car x) (lambda ,(cdr x) ,@val))
+       `(&def! ,x ,(car val))))
+
  (defmacro let (defs . body)
-   `((lambda ,(mapcar (lambda (x)
-                        (if (cons? x) (car x) x)) defs)
-       ,@body)
-     ,@(mapcar (lambda (x)
-                 (if (cons? x) (cadr x) nil)) defs)))
+   (if (list? defs)
+       ;; normal LET
+       `((lambda ,(mapcar (lambda (x)
+                            (if (cons? x) (car x) x)) defs)
+           ,@body)
+         ,@(mapcar (lambda (x)
+                     (if (cons? x) (cadr x) nil)) defs))
+       ;; looping construct
+       (progn
+         (define name defs)
+         (&set! defs (car body))
+         (&set! body (cdr body))
+         `((lambda ()
+             (define (,name ,@(mapcar (lambda (x)
+                                        (if (cons? x) (car x) x)) defs))
+                 ,@body)
+             (,name ,@(mapcar (lambda (x)
+                                (if (cons? x) (cadr x) nil)) defs)))))))
+
+ (defmacro let* (defs . body)
+   (if defs
+       `(let (,(car defs))
+          (let* ,(cdr defs)
+            ,@body))
+       `(progn ,@body)))
 
  (defmacro prog1 (exp . body)
    (let ((ret (gensym)))
@@ -95,11 +120,6 @@
 
  (defmacro defun (name args . body)
    `(defglobal ,name (lambda ,args ,@body)))
-
- (defmacro define (x . val)
-   (if (cons? x)
-       `(&def! ,(car x) (lambda ,(cdr x) ,@val))
-       `(&def! ,x ,(car val))))
 
  (defglobal %set!-setters (make-hash))
 
@@ -166,5 +186,23 @@
          (capture-output (lambda ()
                            (catch &break
                              (,vrec ,lst 0 t))))))))
+
+ (defglobal %filters% (make-hash))
+
+ (defmacro &filter (expr . filters)
+   (let ((output (gensym)))
+     `(let ((,output ,expr))
+        ,@(mapcar (lambda (filter)
+                    `(&set! ,output (&apply-filter ,output ,filter)))
+                  filters))))
+
+ (defmacro &apply-filter (value filter)
+   (if (list? filter)
+       `((get-hash %filters% ',(car filter))
+         ,value ,@(cdr filter))
+       `((get-hash %filters% ',filter) ,value)))
+
+ (defmacro define-filter (name args . body)
+   `(set-hash %filters% ',name (lambda ,args ,@body)))
 
  )}
