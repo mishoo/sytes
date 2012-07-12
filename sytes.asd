@@ -11,6 +11,7 @@
                #:parse-number
                #:cl-ppcre
                #:cl-unicode
+               #:cl-ppcre-unicode
                #:split-sequence
                #:cl-fad
                #:bordeaux-threads
