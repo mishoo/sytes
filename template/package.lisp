@@ -15,6 +15,8 @@
            #:tops
            #:make-keyval
            #:defglobal-context
+           #:fetch-property
+           #:define-fetcher
 
            #:*current-template*
            #:*request-template*))

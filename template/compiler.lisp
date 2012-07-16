@@ -298,6 +298,15 @@
   (defun same-name (a b)
     (string= (name-of a) (name-of b)))
 
+  (defgeneric fetch-property (main key)
+    (:method ((main standard-object) key)
+      (setf key (name-of key))
+      (loop for slot in (closer-mop:class-slots (class-of main))
+            for name = (closer-mop:slot-definition-name slot)
+            when (and (slot-boundp main name)
+                      (string-equal key (name-of name)))
+              do (return (slot-value main name)))))
+
   (def-primitive "&dot-lookup"
       (lambda (main &rest props)
         (block out
@@ -310,6 +319,7 @@
                     (cons (cdr (assoc i main :test #'same-name)))
                     (hash-table (gethash (name-of i) main))
                     (context (cdr (lookup-var i main t)))
+                    (standard-object (fetch-property main i))
                     (null (return-from out nil)))))
           main)))
 
@@ -427,3 +437,8 @@
                                      (asdf:component-pathname
                                       (asdf:find-system :sytes))))
   (funcall (compile (parse in)) *toplevel-context*))
+
+(defmacro define-fetcher ((object type) prop &body body)
+  (let ((sym (gensym)))
+    `(defmethod fetch-property ((,object ,type) (,sym (eql ',(tops prop))))
+       ,@body)))

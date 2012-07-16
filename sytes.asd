@@ -16,6 +16,7 @@
                #:cl-fad
                #:bordeaux-threads
                #:trivial-utf-8
+               #:closer-mop
                #+sbcl #:sb-daemon)
   :components ((:file "package")
                (:file "utils")
