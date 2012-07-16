@@ -291,7 +291,7 @@
                                      (let ((filters (loop until (char= (peek) *token-stop*)
                                                           unless (peek)
                                                             do (croak "Expecting '~C'" *token-stop*)
-                                                          collect (read-token))))
+                                                          collect (prog1 (read-token) (skip-whitespace)))))
                                        (setf tok (list* (tops "&filter") tok filters))))
                                    (unless (char= (peek) *token-stop*)
                                      (setf tok (if (listp tok)
