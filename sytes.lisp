@@ -117,7 +117,8 @@
           (declare (ignore match-start match-end))
           (when reg-starts
             (let* ((registers (map 'list (lambda (start end)
-                                           (subseq script start end))
+                                           (when (and start end)
+                                             (subseq script start end)))
                                    reg-starts reg-ends))
                    (result (apply handler registers)))
               (unless (eq result :continue)

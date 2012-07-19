@@ -278,6 +278,7 @@
                             (skip *token-stop*)
                             (push `(,(tops "progn") ,tok nil) ret)))
                          (t
+                          (skip-whitespace)
                           (let* ((esc (or (and (char= (peek) #\\) (next))
                                           (char= (peek) *token-start*))))
                             (skip-whitespace)
