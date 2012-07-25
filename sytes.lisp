@@ -110,7 +110,8 @@
     (let ((file)
           (redirect)
           (script (tbnl:script-name request))
-          (moarvars))
+          (moarvars)
+          (forbidden))
       (loop for (regexp . handler) in (syte-url-handlers syte) do
         (multiple-value-bind (match-start match-end reg-starts reg-ends)
             (ppcre:scan regexp script)
@@ -147,10 +148,14 @@
         (multiple-value-setq (file redirect)
           (syte-locate-template syte request))
         (when redirect
-          (tbnl:redirect (format nil "~A/" (tbnl:script-name request)))))
+          (tbnl:redirect (format nil "~A/" (tbnl:script-name request))))
+        (setf forbidden (let ((filename (pathname-name file)))
+                          (and (> (length filename) 0)
+                               (char= #\. (char filename 0))))))
       (let ((*package* (find-package :sytes.%runtime%)))
         (tmpl:exec-template-request file (syte-root syte) (syte-context syte)
-                                    :variables moarvars)))))
+                                    :variables moarvars
+                                    :forbidden forbidden)))))
 
 (defmacro def-url-handler ((syte regexp &rest args) &body body)
   (with-rebinds (syte regexp)

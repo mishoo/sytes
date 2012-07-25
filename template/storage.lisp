@@ -59,8 +59,8 @@
                   (template-function cached) func))))
       (values cached was-cached))))
 
-(defun exec-template-request (filename rootdir parent-context &key base-comp variables)
-  (unless (probe-file filename)
+(defun exec-template-request (filename rootdir parent-context &key base-comp variables forbidden)
+  (when (or forbidden (not (probe-file filename)))
     (setf filename (find-file-up *dhandler* rootdir filename)))
   (when filename
     (let* ((tmpl (compile-file filename :parent-context parent-context))

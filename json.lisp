@@ -9,8 +9,6 @@
                   :initarg :json-handlers
                   :initform (make-hash-table :test #'equal))))
 
-(local-time:set-local-time-cl-postgres-readers)
-
 ;;; some utils
 
 (defun dashes-to-underscores (str)

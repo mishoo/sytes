@@ -6,6 +6,5 @@
   :depends-on (#:sytes
                #:local-time
                #:cl-json
-               #:trivial-backtrace
-               #:cl-postgres+local-time)
+               #:trivial-backtrace)
   :components ((:file "json")))

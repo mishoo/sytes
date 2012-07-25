@@ -94,12 +94,13 @@
         @ctx))))
 
 (defun comp-eval-now (exprs)
-  (loop for x in exprs
-        for f = (comp-exp x)
-        do (funcall f *current-context*))
-  (lambda (@ctx)
-    (declare (ignore @ctx))
-    nil))
+  (let (val)
+    (loop for x in exprs
+          for f = (comp-exp x)
+          do (setf val (funcall f *current-context*)))
+    (lambda (@ctx)
+      (declare (ignore @ctx))
+      val)))
 
 (defun comp-catch (tag body)
   (let ((tag (comp-exp tag))
