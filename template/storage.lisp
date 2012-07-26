@@ -26,10 +26,6 @@
         (merge-pathnames filename (fad:pathname-as-directory root))
         filename)))
 
-(defun default-global-context (filename)
-  `((,(tops "*autohandler*") . ,*autohandler*)
-    (,(tops "*template*") . ,filename)))
-
 (defun compile-file (filename &key (parent-context *current-context*) sub-context)
   (unless (pathnamep filename)
     (setf filename (full-filename filename parent-context)))
@@ -38,13 +34,11 @@
           (cached (gethash filename *compile-cache*))
           (was-cached t))
       (unless (and cached (<= timestamp (template-timestamp cached)))
-        (tbnl:log-message* 'TMPL "Compiling ~A" filename)
         (setf was-cached nil)
         (with-open-file (in filename)
           (let* ((ctx (or sub-context
                           (make-context :name filename
-                                        :parent parent-context
-                                        :global (tmpl:make-keyval :data (default-global-context filename)))))
+                                        :parent parent-context)))
                  (*current-context* ctx)
                  (tmpl (make-template :filename (truename filename)
                                       :context ctx))

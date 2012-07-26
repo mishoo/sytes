@@ -1,23 +1,24 @@
 { ; -*- lisp -*-
 (eval-when-compile
 
- ;; autohandler stuff
- (defmacro @inherit (name)
-   (set! *autohandler* name) nil)
+  ;; autohandler stuff
+  (defmacro @inherit (name)
+    `(eval-when-compile
+       (defglobal *autohandler* ,name)))
 
- (defun @attr (name . value)
-   (let ((attr (*attributes*)))
-     (if value
-         (set-hash attr name (car value))
-         (get-hash attr name))))
+  (defun @attr (name . value)
+    (let ((attr (*attributes*)))
+      (if value
+          (set-hash attr name (car value))
+          (get-hash attr name))))
 
- (defmacro import (template . names)
-   `(let ((ctx (require ,template)))
-      ,@(if names
-            (mapcar (lambda (name)
-                      `(&defglobal! ,name (&dot-lookup ctx ,name)))
-                    names)
-            `(ctx))))
+  (defmacro import (template . names)
+    `(let ((ctx (require ,template)))
+       ,@(if names
+             (mapcar (lambda (name)
+                       `(&defglobal! ,name (&dot-lookup ctx ,name)))
+                     names)
+             `(ctx))))
 
- )
+  )
 }

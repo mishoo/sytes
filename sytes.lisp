@@ -300,6 +300,10 @@
           (when sym (setf status (symbol-value sym)))))
       (setf (tbnl:return-code*) status)))
 
+(tmpl:def-primitive "http/set-content-type"
+    (lambda (ct)
+      (setf (tbnl:content-type*) ct)))
+
 (tmpl:def-primitive "http/script-name"
     (lambda ()
       (tbnl:script-name*)))
