@@ -86,10 +86,14 @@
           for ret = (let ((*json-notify-before* nil)
                           (*json-notify-after* nil)
                           (func (gethash (string-upcase cmd) (syte-json-handlers syte))))
-                      (prog1
-                          (vector id cmd (apply func args))
-                        (setf before *json-notify-before*
-                              after *json-notify-after*)))
+                      (vector id cmd
+                              (handler-case
+                                  (prog1
+                                      (apply func args)
+                                    (setf before *json-notify-before*
+                                          after *json-notify-after*))
+                                (rpc-error (ex)
+                                  ex))))
           when before nconc it
             collect ret
           when after nconc it)))

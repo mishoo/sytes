@@ -6,5 +6,8 @@
   :depends-on (#:sytes
                #:local-time
                #:cl-json
+               #:cl-ppcre
+               #:cl-ppcre-unicode
                #:trivial-backtrace)
-  :components ((:file "json")))
+  :components ((:file "json")
+               (:file "json-validation")))

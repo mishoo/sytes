@@ -223,6 +223,7 @@
 (def-primitive "null?" #'null)
 (def-primitive "member" (lambda (item list &key (test #'das-eq))
                           (member item list :test test)))
+(def-primitive "vector" #'vector)
 
 (def-primitive "rplaca" #'rplaca)
 (def-primitive "rplacd" #'rplacd)
@@ -366,13 +367,17 @@
         (apply func args))))
 
 (labels ((strcat (args out)
-           (dolist (a args)
-             (when a
-               (typecase a
-                 (string (write-string a out))
-                 (character (write-char a out))
-                 (list (strcat a out))
-                 (t (format out "~A" a)))))))
+           (typecase args
+             (list (dolist (a args)
+                     (when a
+                       (typecase a
+                         (string (write-string a out))
+                         (character (write-char a out))
+                         (list (strcat a out))
+                         (t (format out "~A" a))))))
+             (string (write-string args out))
+             (character (write-char args out))
+             (t (format out "~A" args)))))
   (def-primitive "strcat"
       (lambda (&rest args)
         (with-output-to-string (out)
@@ -409,7 +414,16 @@
   (def-primitive "esc"
       (lambda (&rest args)
         (tbnl:escape-for-html (with-output-to-string (out)
-                                (strcat args out))))))
+                                (strcat args out)))))
+
+  (def-primitive "join"
+      (lambda (separator list)
+        (with-output-to-string (out)
+          (loop for i in list
+                for first = t then nil
+                unless first
+                  do (strcat separator out)
+                do (strcat i out))))))
 
 (def-primitive "sort" #'stable-sort)
 
