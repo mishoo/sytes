@@ -1,5 +1,5 @@
 (defpackage #:sytes.template
-  (:use #:cl #:iterate #:anaphora)
+  (:use #:cl #:anaphora)
   (:shadow #:compile #:compile-file)
   (:nicknames #:tmpl)
   (:export #:make-context

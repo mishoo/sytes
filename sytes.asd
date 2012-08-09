@@ -7,7 +7,6 @@
   :license "BSD"
   :depends-on (#:hunchentoot
                #:anaphora
-               #:iterate
                #:parse-number
                #:cl-ppcre
                #:cl-unicode
