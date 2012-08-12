@@ -43,12 +43,13 @@
                  (tmpl (make-template :filename (truename filename)
                                       :context ctx))
                  (func (let ((*current-template* tmpl))
-                         (setf cached
-                               (setf (gethash filename *compile-cache*) tmpl))
-                         (compile
-                          (let ((*token-start* *default-token-start*)
-                                (*token-stop* *default-token-stop*))
-                            (parse in :template-name filename))))))
+                         (prog1
+                             (compile
+                              (let ((*token-start* *default-token-start*)
+                                    (*token-stop* *default-token-stop*))
+                                (parse in :template-name filename)))
+                           (setf cached
+                                 (setf (gethash filename *compile-cache*) tmpl))))))
             (setf (template-timestamp cached) timestamp
                   (template-function cached) func))))
       (values cached was-cached))))

@@ -17,6 +17,7 @@
            #:defglobal-context
            #:fetch-property
            #:define-fetcher
+           #:make-template
 
            #:*current-template*
            #:*request-template*))

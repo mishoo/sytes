@@ -37,7 +37,7 @@
                                         (root (and parent (context-root parent)))
                                         (env (make-keyval))
                                         (global (make-keyval))
-                                        (macros))))
+                                        (macros (make-keyval)))))
   (name)
   (parent)
   (root)
@@ -46,14 +46,13 @@
   (macros))
 
 (defun is-macro (symbol &optional (context *current-context*))
-  (or (awhen (assoc symbol (context-macros context))
+  (or (awhen (keyval-find (context-macros context) symbol nil)
         (cdr it))
       (awhen (context-parent context)
         (is-macro symbol it))))
 
 (defun add-macro (symbol func &optional (context *current-context*))
-  (setf (context-macros context)
-        (acons symbol func (context-macros context))))
+  (keyval-defset (context-macros context) symbol func))
 
 (defun context-root-up (context)
   (loop while (and context (null (context-root context)))
