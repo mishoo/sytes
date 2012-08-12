@@ -225,16 +225,26 @@
              (let ((path (make-pathname :defaults path
                                         :directory (list* :relative (cdr dir)))))
                (merge-pathnames path (syte-root *current-syte*)))
-             (merge-pathnames path (tmpl:template-filename current))))))
+             (merge-pathnames path (tmpl:template-filename current)))))
+
+     (process (name defs)
+       (let* ((tmpl (tmpl:compile-file (getpath name)
+                                       :parent-context (syte-context *current-syte*)))
+              (ctx (tmpl:make-context :name (tmpl:template-filename tmpl)
+                                      :parent (tmpl:template-context tmpl))))
+         (values (apply (tmpl:template-function tmpl) ctx defs)
+                 ctx))))
 
   (tmpl:def-primitive "require"
-      (lambda (name)
-        (let* ((tmpl (tmpl:compile-file (getpath name)
-                                        :parent-context (syte-context *current-syte*)))
-               (ctx (tmpl:make-context :name (tmpl:template-filename tmpl)
-                                       :parent (tmpl:template-context tmpl))))
-          (funcall (tmpl:template-function tmpl) ctx)
+      (lambda (name &rest defs)
+        (multiple-value-bind (text ctx)
+            (process name defs)
+          (declare (ignore text))
           ctx)))
+
+  (tmpl:def-primitive "process"
+      (lambda (name &rest defs)
+        (process name defs)))
 
   (tmpl:def-primitive "include"
       (lambda (name)
