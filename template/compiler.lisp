@@ -389,6 +389,8 @@
       (lambda (&rest args)
         (string-trim '(#\Space
                        #\Newline
+                       #\Return
+                       #\Linefeed
                        #\Tab
                        #\Page
                        #\Line_Separator

@@ -47,6 +47,8 @@
            (read-while (lambda (ch)
                          (member ch '(#\Space
                                       #\Newline
+                                      #\Return
+                                      #\Linefeed
                                       #\Tab
                                       #\Page
                                       #\Line_Separator
@@ -85,6 +87,8 @@
                                                         #\( #\) #\[ #\] #\` #\' #\, #\{ #\} #\\ #\|
                                                         #\Space
                                                         #\Newline
+                                                        #\Return
+                                                        #\Linefeed
                                                         #\Tab
                                                         #\Page
                                                         #\Line_Separator
