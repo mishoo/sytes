@@ -150,8 +150,11 @@
         (when redirect
           (tbnl:redirect (format nil "~A/" (tbnl:script-name request))))
         (setf forbidden (let ((filename (pathname-name file)))
-                          (and (> (length filename) 0)
-                               (char= #\. (char filename 0))))))
+                          (or (and (> (length filename) 0)
+                                   (char= #\. (char filename 0)))
+                              (and (string-equal (pathname-type file) "syt")
+                                   (or (string-equal filename "autohandler")
+                                       (string-equal filename "dhandler")))))))
       (let ((*package* (find-package :sytes.%runtime%)))
         (tmpl:exec-template-request file (syte-root syte) (syte-context syte)
                                     :variables moarvars
