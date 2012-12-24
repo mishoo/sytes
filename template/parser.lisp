@@ -84,7 +84,7 @@
                                     (when ch
                                       (not (member ch `(,*token-start*
                                                         ,*token-stop*
-                                                        #\( #\) #\[ #\] #\` #\' #\, #\{ #\} #\\ #\|
+                                                        #\( #\) #\[ #\] #\` #\' #\, #\{ #\} #\\ #\| #\"
                                                         #\Space
                                                         #\Newline
                                                         #\Return
