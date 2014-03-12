@@ -45,6 +45,9 @@
   (global)
   (macros))
 
+(defun context-inherit (ctx parent)
+  (setf (context-parent ctx) parent))
+
 (defun is-macro (symbol &optional (context *current-context*))
   (or (awhen (keyval-find (context-macros context) symbol nil)
         (cdr it))

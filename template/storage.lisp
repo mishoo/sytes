@@ -71,6 +71,8 @@
                     ;; have autohandler
                     (let ((call-me (lambda (&rest args)
                                      (let ((*current-template* tmpl))
+                                       ;; *current-context* is here the autohandler's context.
+                                       (context-inherit ctx *current-context*)
                                        (apply (template-function tmpl) ctx (tops "call-next") base-comp (append args variables))))))
                       (exec-template-request ah rootdir parent-context :base-comp call-me :variables variables)))
                    (t
