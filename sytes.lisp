@@ -231,10 +231,9 @@
              (merge-pathnames path (tmpl:template-filename current)))))
 
      (process (name defs)
-       (let* ((tmpl (tmpl:compile-file (getpath name)
-                                       :parent-context (syte-context *current-syte*)))
+       (let* ((tmpl (tmpl:compile-file (getpath name)))
               (ctx (tmpl:make-context :name (tmpl:template-filename tmpl)
-                                      :parent (tmpl:template-context tmpl))))
+                                      :parent tmpl::*current-context*)))
          (values (apply (tmpl:template-function tmpl) ctx defs)
                  ctx))))
 
