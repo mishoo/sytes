@@ -87,13 +87,17 @@
                           (*json-notify-after* nil)
                           (func (gethash (string-upcase cmd) (syte-json-handlers syte))))
                       (vector id cmd
-                              (handler-case
-                                  (prog1
-                                      (apply func args)
-                                    (setf before *json-notify-before*
-                                          after *json-notify-after*))
-                                (rpc-error (ex)
-                                  ex))))
+                              (cond
+                                ((functionp func)
+                                 (handler-case
+                                     (prog1
+                                         (apply func args)
+                                       (setf before *json-notify-before*
+                                             after *json-notify-after*))
+                                   (rpc-error (ex)
+                                     ex)))
+                                (t
+                                 (make-condition 'rpc-error :code 'nope :text "Unknown command")))))
           when before nconc it
             collect ret
           when after nconc it)))
