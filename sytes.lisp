@@ -125,7 +125,8 @@
               (unless (eq result :continue)
                 (destructuring-bind (&key
                                        variables template redirect
-                                       content static-file content-type
+                                       content static-file
+                                       content-type content-disposition
                                        status) result
                   (when redirect
                     (tbnl:redirect redirect))
@@ -134,6 +135,8 @@
                       (tbnl:handle-static-file static-file content-type)))
                   (when content-type
                     (setf (tbnl:content-type*) content-type))
+                  (when content-disposition
+                    (setf (tbnl:header-out :content-disposition) content-disposition))
                   (when status
                     (setf (tbnl:return-code*) status))
                   (when content
