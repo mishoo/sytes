@@ -5,6 +5,7 @@
 (export '(register-syte
           unregister-syte
           syte-request-handler
+          syte-send-as-static
           reset-caches
           def-url-handler
           url-to-file))
@@ -79,7 +80,7 @@
 
 (defun url-to-file (file &optional (syte *current-syte*))
   (let* ((root (syte-root syte))
-         (pos (position-if-not (lambda (x) (char= x #\/)) file))
+         (pos (position-if (lambda (x) (char/= x #\/)) file))
          (redirect nil))
     (if pos
         (setf file (subseq file pos))
@@ -101,6 +102,11 @@
   (:method ((syte syte) request)
     (let ((script (tbnl:script-name request)))
       (url-to-file script syte))))
+
+(defgeneric syte-send-as-static (syte request file)
+  (:method ((syte syte) request file)
+    (declare (ignore syte request file))
+    nil))
 
 (defgeneric syte-request-handler (syte request)
   (:method ((syte (eql nil)) request)
@@ -151,13 +157,16 @@
         (multiple-value-setq (file redirect)
           (syte-locate-template syte request))
         (when redirect
-          (tbnl:redirect (format nil "~A/" (tbnl:script-name request))))
-        (setf forbidden (let ((filename (pathname-name file)))
-                          (or (and (> (length filename) 0)
-                                   (char= #\. (char filename 0)))
-                              (and (string-equal (pathname-type file) "syt")
-                                   (or (string-equal filename "autohandler")
-                                       (string-equal filename "dhandler")))))))
+          (tbnl:redirect (format nil "~A/" (tbnl:script-name request)))))
+      (awhen (syte-send-as-static syte request file)
+        (return-from syte-request-handler
+          (tbnl:handle-static-file file (when (stringp it) it))))
+      (setf forbidden (let ((filename (pathname-name file)))
+                        (or (and (> (length filename) 0)
+                                 (char= #\. (char filename 0)))
+                            (and (string-equal (pathname-type file) "syt")
+                                 (or (string-equal filename "autohandler")
+                                     (string-equal filename "dhandler"))))))
       (let ((*package* (find-package :sytes.%runtime%)))
         (tmpl:exec-template-request file (syte-root syte) (syte-context syte)
                                     :variables moarvars
