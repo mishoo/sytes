@@ -157,16 +157,16 @@
         (multiple-value-setq (file redirect)
           (syte-locate-template syte request))
         (when redirect
-          (tbnl:redirect (format nil "~A/" (tbnl:script-name request)))))
+          (tbnl:redirect (format nil "~A/" (tbnl:script-name request))))
+        (setf forbidden (let ((filename (pathname-name file)))
+                          (or (and (> (length filename) 0)
+                                   (char= #\. (char filename 0)))
+                              (and (string-equal (pathname-type file) "syt")
+                                   (or (string-equal filename "autohandler")
+                                       (string-equal filename "dhandler")))))))
       (awhen (syte-send-as-static syte request file)
         (return-from syte-request-handler
           (tbnl:handle-static-file file (when (stringp it) it))))
-      (setf forbidden (let ((filename (pathname-name file)))
-                        (or (and (> (length filename) 0)
-                                 (char= #\. (char filename 0)))
-                            (and (string-equal (pathname-type file) "syt")
-                                 (or (string-equal filename "autohandler")
-                                     (string-equal filename "dhandler"))))))
       (let ((*package* (find-package :sytes.%runtime%)))
         (tmpl:exec-template-request file (syte-root syte) (syte-context syte)
                                     :variables moarvars
