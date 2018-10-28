@@ -11,5 +11,13 @@
            #:syte-context
            #:def-syte-primitive
            #:start-server
-           #:stop-server))
+           #:stop-server)
+  #+sbcl
+  (:import-from #:sb-ext
+                #:run-program
+                #:process-input
+                #:process-output
+                #:process-exit-code)
+  #+ccl
+  (:shadow CCL::RUN-PROGRAM))
 

@@ -208,6 +208,7 @@
 (def-primitive "list" #'list)
 (def-primitive "list*" #'list*)
 (def-primitive "append" #'append)
+(def-primitive "assoc" #'assoc)
 (def-primitive "nconc" #'nconc)
 (def-primitive "nthcdr" #'nthcdr)
 (def-primitive "cons" #'cons)
