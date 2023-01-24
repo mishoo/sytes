@@ -374,6 +374,7 @@
                        (typecase a
                          (string (write-string a out))
                          (character (write-char a out))
+                         (function (strcat (funcall a) out))
                          (list (strcat a out))
                          (t (format out "~A" a))))))
              (string (write-string args out))
