@@ -430,6 +430,10 @@
 
 (def-primitive "sort" #'stable-sort)
 
+(def-primitive "json-encode"
+    (lambda (obj)
+      (json:encode-json-to-string obj)))
+
 (def-primitive "regexp-split" #'ppcre:split)
 (def-primitive "regexp-replace"
     (lambda (rx str replacement)
