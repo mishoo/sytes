@@ -13,6 +13,7 @@
                #:cl-ppcre-unicode
                #:split-sequence
                #:cl-fad
+               #:cl-json
                #:bordeaux-threads
                #:trivial-utf-8
                #:closer-mop
