@@ -65,3 +65,10 @@
 (defmethod validate ((field null) (how (eql :email)) &key &allow-other-keys)
   t)
 
+(defmethod validate ((field string) (handler function)
+                     &key (text "Validation error") (code :bad-data)
+                       field-name (info field-name))
+  (awhen (funcall handler field-name field)
+    (when (stringp it)
+      (setf text it))
+    (error 'rpc-error-validation :text text :code code :info info)))
