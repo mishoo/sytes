@@ -44,6 +44,11 @@
 (defmethod json:encode-json ((value (eql :null)) &optional stream)
   (write-string "null" stream))
 
+;; XXX: CL-JSON screws up surrogate pairs.
+;; Should switch to JSOWN entirely at some point.
+(defmethod json:encode-json ((value string) &optional stream)
+  (write-string (jsown:to-json value) stream))
+
 (defclass cl-json-always-hash ()
   ((data :initarg :data :type list)))
 

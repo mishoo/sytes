@@ -14,6 +14,7 @@
                #:split-sequence
                #:cl-fad
                #:cl-json
+               #:jsown
                #:bordeaux-threads
                #:trivial-utf-8
                #:closer-mop
