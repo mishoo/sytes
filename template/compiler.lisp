@@ -2,6 +2,7 @@
 
 (defparameter +s-quote+ (tops "quote"))
 (defparameter +s-lambda+ (tops "lambda"))
+(defparameter +s-lambda-char+ (tops "λ"))
 (defparameter +s-progn+ (tops "progn"))
 (defparameter +s-if+ (tops "if"))
 (defparameter +s-set+ (tops "&set!"))
@@ -121,7 +122,8 @@
     (lambda (@ctx)
       (let ((expr (funcall expr @ctx)))
         (assert (and (listp expr)
-                     (eq (car expr) +s-lambda+))
+                     (or (eq (car expr) +s-lambda+)
+                         (eq (car expr) +s-lambda-char+)))
                 nil
                 "COMPILE only takes a LAMBDA expression")
         (funcall (comp-exp expr)
@@ -146,6 +148,7 @@
              ((eq x +s-quote+) (comp-constant (car args)))
              ((eq x +s-progn+) (comp-sequence args))
              ((eq x +s-lambda+) (comp-lambda (car args) (cdr args)))
+             ((eq x +s-lambda-char+) (comp-lambda (car args) (cdr args)))
              ((eq x +s-set+) (comp-set (car args) (cadr args)))
              ((eq x +s-def+) (comp-def (car args) (cadr args)))
              ((eq x +s-if+) (comp-if (car args) (cadr args) (caddr args)))
