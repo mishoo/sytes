@@ -202,8 +202,8 @@
 
 (defparameter *acceptor* nil)
 
-(defun start-server (&key (port 7379))
-  (setf *acceptor* (make-instance 'sytes-acceptor :port port))
+(defun start-server (&rest args)
+  (setf *acceptor* (apply #'make-instance 'sytes-acceptor args))
   (tbnl:start *acceptor*))
 
 (defun stop-server ()
@@ -347,12 +347,13 @@
   (defparameter *running* t)
   (defun main (argv)
     (declare (ignore argv))
-    (sb-daemon:daemonize :output "/tmp/sytes.output"
-                         :error "/tmp/sytes.error"
+    (sb-daemon:daemonize :output "~/logs/daemon.output"
+                         :error "~/logs/daemon.error"
                          :exit-parent t
                          :sigterm (lambda (sig)
                                     (declare (ignore sig))
                                     (setf *running* nil)))
     (setf *running* t)
-    (start-server)
+    (start-server :access-log-destination "~/logs/sytes.log"
+                  :message-log-destination "~/logs/sytes.err")
     (loop while *running* do (sleep 1))))
