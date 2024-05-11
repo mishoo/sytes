@@ -184,7 +184,12 @@
   (report-time-spent (format nil "~A~A"
                              (car (syte-names syte))
                              (tbnl:script-name request))
-    (call-next-method)))
+    (handler-case
+        (usocket:with-mapped-conditions ()
+          (call-next-method))
+      (usocket:connection-aborted-error ())
+      (usocket:connection-reset-error ())
+      (usocket:connection-refused-error ()))))
 
 ;;; hunchentoot stuff
 
