@@ -43,9 +43,12 @@
   (let ((body (comp-sequence body)))
     (lambda (@ctx)
       (lambda (&rest values)
-        (funcall body
-                 (extend-context (bindings args values)
-                                 @ctx))))))
+        (let* ((ctx (copy-context @ctx))
+               (env (copy-keyval (context-env ctx))))
+          (setf (context-env ctx) env)
+          (setf (keyval-data env)
+                (bindings args values (keyval-data env)))
+          (funcall body ctx))))))
 
 (defun comp-set (name value)
   (let ((value (comp-exp value)))
@@ -55,8 +58,7 @@
 (defun comp-def (name value)
   (let ((value (comp-exp value)))
     (lambda (@ctx)
-      (defsetvar-context name nil @ctx)
-      (setvar-context name (funcall value @ctx) @ctx))))
+      (defsetvar-context name (funcall value @ctx) @ctx))))
 
 (defun comp-if (predicate then else)
   (let ((predicate (comp-exp predicate))
@@ -73,7 +75,8 @@
     (lambda (@ctx)
       (apply (funcall name @ctx)
              (mapcar (lambda (arg)
-                       (funcall arg @ctx)) args)))))
+                       (funcall arg @ctx))
+                     args)))))
 
 (defun comp-ref (name)
   (lambda (@ctx)

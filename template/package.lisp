@@ -13,7 +13,6 @@
            #:template-timestamp
            #:clear-cache
            #:tops
-           #:make-keyval
            #:defglobal-context
            #:fetch-property
            #:define-fetcher
