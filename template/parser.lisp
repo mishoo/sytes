@@ -2,8 +2,10 @@
 
 (defparameter *default-token-start* #\{)
 (defparameter *default-token-stop* #\})
+(defparameter *default-comment-char* #\;)
 (defparameter *token-start* *default-token-start*)
 (defparameter *token-stop* *default-token-stop*)
+(defparameter *comment-char* *default-comment-char*)
 (defparameter *list-terminator* #\))
 
 (defun parse (input &key (template-name "UNKNOWN-TEMPLATE"))
@@ -121,8 +123,8 @@
                      (t
                       (tops sym))))))))
 
-         (skip-comment ()
-           (skip #\;)
+         (skip-comment (&optional (start-char #\;))
+           (skip start-char)
            (read-while (lambda (ch)
                          (and ch (not (member ch '(#\Newline #\Line_Separator #\Linefeed)))))))
 
@@ -272,13 +274,13 @@
                               (if (member (peek) '(#\Newline #\Linefeed #\Line_Separator))
                                   (write-char #\~ ret)
                                   (write-string "\\~" ret)))
-                             ((and (eql ch #\;) (= col 1))
-                              (next) (write-char #\; ret))
+                             ((and (eql ch *comment-char*) (= col 1))
+                              (next) (write-char *comment-char* ret))
                              (t (write-char #\\ ret)))))
                         ((char= ch *token-start*) (return ret))
                         ((char= ch *token-stop*) (return ret))
-                        ((and (char= ch #\;) (= col 0))
-                         (skip-comment)
+                        ((and (char= ch *comment-char*) (= col 0))
+                         (skip-comment *comment-char*)
                          (next))
                         (t (write-char (next) ret))))))
 
@@ -290,6 +292,8 @@
                 (let ((start (read-string))
                       (stop (read-string)))
                   (skip-whitespace)
+                  (when (eql #\" (peek))
+                    (setf *comment-char* (aref (read-string) 0)))
                   (skip *token-stop*)
                   (setf *token-start* (aref start 0)
                         *token-stop* (aref stop 0))

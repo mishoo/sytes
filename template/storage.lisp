@@ -46,7 +46,8 @@
                          (prog1
                              (compile
                               (let ((*token-start* *default-token-start*)
-                                    (*token-stop* *default-token-stop*))
+                                    (*token-stop* *default-token-stop*)
+                                    (*comment-char* *default-comment-char*))
                                 (parse in :template-name filename)))
                            (setf cached
                                  (setf (gethash filename *compile-cache*) tmpl))))))
